@@ -2,9 +2,16 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from app.database import Base, engine
+from app.models.product import Product
+from app.models.scan_event import ScanEvent
+
 from app.routers.products import router as products_router
 from app.routers.scans import router as scans_router
 from app.routers.verification import router as verification_router
+
+
+Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(
