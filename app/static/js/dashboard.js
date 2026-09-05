@@ -8,32 +8,31 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboard();
 
     const refreshButton = document.getElementById("refresh-btn");
+
     if (refreshButton) {
         refreshButton.addEventListener("click", loadDashboard);
     }
 
     const productForm = document.getElementById("product-form");
+
     if (productForm) {
         productForm.addEventListener("submit", handleProductSubmit);
     }
 
     const scanForm = document.getElementById("scan-form");
+
     if (scanForm) {
         scanForm.addEventListener("submit", handleScanSubmit);
     }
 
     const closeButton = document.getElementById("close-investigation");
+
     if (closeButton) {
         closeButton.addEventListener("click", function (event) {
             event.preventDefault();
             event.stopPropagation();
 
-            const panel = document.getElementById("investigation-panel");
-
-            if (panel) {
-                panel.classList.add("hidden");
-                panel.style.display = "none";
-            }
+            closeInvestigation();
         });
     }
 
@@ -80,6 +79,7 @@ async function loadProducts() {
         products = await response.json();
 
         renderProducts();
+
     } catch (error) {
         console.error("Error loading products:", error);
     }
@@ -97,6 +97,7 @@ async function loadScans() {
         scans = await response.json();
 
         renderScans();
+
     } catch (error) {
         console.error("Error loading scans:", error);
     }
@@ -116,6 +117,7 @@ async function loadFlags() {
         console.log("Flagged scans received:", flags);
 
         renderFlags();
+
     } catch (error) {
         console.error("Error loading flagged scans:", error);
     }
@@ -123,10 +125,17 @@ async function loadFlags() {
 
 
 function updateSummary() {
-    const totalScansElement = document.getElementById("total-scans");
-    const flaggedScansElement = document.getElementById("flagged-scans");
-    const safeScansElement = document.getElementById("safe-scans");
-    const totalProductsElement = document.getElementById("total-products");
+    const totalScansElement =
+        document.getElementById("total-scans");
+
+    const flaggedScansElement =
+        document.getElementById("flagged-scans");
+
+    const safeScansElement =
+        document.getElementById("safe-scans");
+
+    const totalProductsElement =
+        document.getElementById("total-products");
 
     const totalScanCount = scans.length;
 
@@ -134,34 +143,43 @@ function updateSummary() {
         (scan) => scan.flagged === true
     ).length;
 
-    const safeScanCount = totalScanCount - flaggedScanCount;
+    const safeScanCount =
+        totalScanCount - flaggedScanCount;
 
     if (totalScansElement) {
-        totalScansElement.textContent = totalScanCount;
+        totalScansElement.textContent =
+            totalScanCount;
     }
 
     if (flaggedScansElement) {
-        flaggedScansElement.textContent = flaggedScanCount;
+        flaggedScansElement.textContent =
+            flaggedScanCount;
     }
 
     if (safeScansElement) {
-        safeScansElement.textContent = safeScanCount;
+        safeScansElement.textContent =
+            safeScanCount;
     }
 
     if (totalProductsElement) {
-        totalProductsElement.textContent = products.length;
+        totalProductsElement.textContent =
+            products.length;
     }
 }
 
 
 function updateApiStatus() {
-    const apiStatus = document.getElementById("api-status");
+    const apiStatus =
+        document.querySelector(".api-status");
 
     if (!apiStatus) {
         return;
     }
 
-    apiStatus.textContent = "API Connected";
+    apiStatus.innerHTML = `
+        <span class="status-dot"></span>
+        <span>API Online</span>
+    `;
 
     apiStatus.classList.remove("offline");
     apiStatus.classList.add("online");
@@ -169,7 +187,8 @@ function updateApiStatus() {
 
 
 function renderProducts() {
-    const tableBody = document.getElementById("products-table-body");
+    const tableBody =
+        document.getElementById("products-table-body");
 
     if (!tableBody) {
         return;
@@ -190,37 +209,57 @@ function renderProducts() {
     }
 
     products.forEach((product) => {
-        const row = document.createElement("tr");
+        const row =
+            document.createElement("tr");
 
-        const code = encodeURIComponent(product.code);
+        const code =
+            encodeURIComponent(product.code);
 
-        const qrUrl = `${API_BASE}/products/${code}/qr`;
+        const qrUrl =
+            `${API_BASE}/products/${code}/qr`;
 
         row.innerHTML = `
             <td>
                 ${escapeHtml(product.code)}
 
-                <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
-
+                <div
+                    style="
+                        margin-top: 8px;
+                        display: flex;
+                        gap: 6px;
+                        flex-wrap: wrap;
+                    "
+                >
                     <a
                         href="${qrUrl}"
                         target="_blank"
                         rel="noopener"
                         class="secondary-button"
-                        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            text-decoration: none;
+                        "
                     >
                         View QR
                     </a>
 
                     <a
                         href="${qrUrl}"
-                        download="${escapeHtml(product.code)}-trusttrace-qr.png"
+                        download="${escapeHtml(
+                            product.code
+                        )}-trusttrace-qr.png"
                         class="secondary-button"
-                        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            text-decoration: none;
+                        "
                     >
                         Download QR
                     </a>
-
                 </div>
             </td>
 
@@ -239,7 +278,8 @@ function renderProducts() {
 
 
 function renderScans() {
-    const tableBody = document.getElementById("scans-table-body");
+    const tableBody =
+        document.getElementById("scans-table-body");
 
     if (!tableBody) {
         return;
@@ -260,15 +300,18 @@ function renderScans() {
     }
 
     scans.forEach((scan) => {
-        const row = document.createElement("tr");
+        const row =
+            document.createElement("tr");
 
-        const statusClass = scan.flagged
-            ? "status-flagged"
-            : "status-safe";
+        const statusClass =
+            scan.flagged
+                ? "status-flagged"
+                : "status-safe";
 
-        const statusText = scan.flagged
-            ? "Flagged"
-            : "Safe";
+        const statusText =
+            scan.flagged
+                ? "Flagged"
+                : "Safe";
 
         row.innerHTML = `
             <td>
@@ -291,7 +334,13 @@ function renderScans() {
             </td>
 
             <td>
-                <span class="status-badge ${scan.flagged ? "flagged" : "safe"}">
+                <span
+                    class="status-badge ${
+                        scan.flagged
+                            ? "flagged"
+                            : "safe"
+                    }"
+                >
                     ${statusText}
                 </span>
             </td>
@@ -311,7 +360,8 @@ function renderScans() {
 
 
 function renderFlags() {
-    const tableBody = document.getElementById("flags-table-body");
+    const tableBody =
+        document.getElementById("flags-table-body");
 
     if (!tableBody) {
         return;
@@ -336,22 +386,28 @@ function renderFlags() {
     updateAlertBanner(true);
 
     flags.forEach((scan) => {
-        const row = document.createElement("tr");
+        const row =
+            document.createElement("tr");
 
-        const reviewStatus = scan.review_status || "PENDING";
+        const reviewStatus =
+            scan.review_status || "PENDING";
 
-        let reviewStatusClass = "review-required";
+        let reviewStatusClass =
+            "review-required";
 
         if (
             reviewStatus === "REVIEWED" ||
             reviewStatus === "DISMISSED"
         ) {
-            reviewStatusClass = "status-safe";
+            reviewStatusClass =
+                "status-safe";
         }
 
-        const riskClass = getRiskClass(scan);
+        const riskClass =
+            getRiskClass(scan);
 
-        const riskText = getRiskText(scan);
+        const riskText =
+            getRiskText(scan);
 
         row.innerHTML = `
             <td>
@@ -380,7 +436,9 @@ function renderFlags() {
             </td>
 
             <td>
-                <span class="status-badge ${riskClass}">
+                <span
+                    class="status-badge ${riskClass}"
+                >
                     ${riskText}
                 </span>
             </td>
@@ -404,7 +462,9 @@ function renderFlags() {
             <td class="review-reason">
                 ${
                     scan.flag_reason
-                        ? escapeHtml(scan.flag_reason)
+                        ? escapeHtml(
+                            scan.flag_reason
+                        )
                         : "No detection reason"
                 }
             </td>
@@ -416,11 +476,14 @@ function renderFlags() {
 
 
 function updateAlertBanner(hasFlags) {
-    const banner = document.getElementById("alert-banner");
+    const banner =
+        document.getElementById("alert-banner");
 
-    const title = document.getElementById("alert-title");
+    const title =
+        document.getElementById("alert-title");
 
-    const description = document.getElementById("alert-description");
+    const description =
+        document.getElementById("alert-description");
 
     if (!banner) {
         return;
@@ -443,9 +506,12 @@ function updateAlertBanner(hasFlags) {
         if (description) {
             description.textContent =
                 `${flags.length} flagged scan event${
-                    flags.length === 1 ? "" : "s"
+                    flags.length === 1
+                        ? ""
+                        : "s"
                 } require review.`;
         }
+
     } else {
         banner.classList.add("alert-safe");
 
@@ -464,10 +530,14 @@ function updateAlertBanner(hasFlags) {
 
 function openInvestigation(scanId) {
     const panel =
-        document.getElementById("investigation-panel");
+        document.getElementById(
+            "investigation-panel"
+        );
 
     const content =
-        document.getElementById("investigation-content");
+        document.getElementById(
+            "investigation-content"
+        );
 
     if (!panel || !content) {
         console.error(
@@ -477,9 +547,12 @@ function openInvestigation(scanId) {
         return;
     }
 
-    const scan = scans.find(
-        (item) => Number(item.id) === Number(scanId)
-    );
+    const scan =
+        scans.find(
+            (item) =>
+                Number(item.id) ===
+                Number(scanId)
+        );
 
     if (!scan) {
         console.error(
@@ -495,7 +568,9 @@ function openInvestigation(scanId) {
 
             <div class="investigation-item">
                 <span>Scan ID</span>
-                <strong>${scan.id}</strong>
+                <strong>
+                    ${scan.id}
+                </strong>
             </div>
 
             <div class="investigation-item">
@@ -526,7 +601,8 @@ function openInvestigation(scanId) {
                 <span>Current Review Status</span>
                 <strong>
                     ${escapeHtml(
-                        scan.review_status || "PENDING"
+                        scan.review_status ||
+                        "PENDING"
                     )}
                 </strong>
             </div>
@@ -537,14 +613,15 @@ function openInvestigation(scanId) {
                 <p>
                     ${
                         scan.flag_reason
-                            ? escapeHtml(scan.flag_reason)
+                            ? escapeHtml(
+                                scan.flag_reason
+                            )
                             : "No detection reason"
                     }
                 </p>
             </div>
 
             <div class="investigation-note">
-
                 <label for="review-note">
                     Investigation Note
                 </label>
@@ -553,7 +630,6 @@ function openInvestigation(scanId) {
                     id="review-note"
                     placeholder="Add a review note..."
                 ></textarea>
-
             </div>
 
         </div>
@@ -565,7 +641,10 @@ function openInvestigation(scanId) {
                 <button
                     type="button"
                     class="primary-button"
-                    onclick="submitReview(${scan.id}, 'REVIEWED')"
+                    onclick="submitReview(
+                        ${scan.id},
+                        'REVIEWED'
+                    )"
                 >
                     Confirm Review
                 </button>
@@ -573,7 +652,10 @@ function openInvestigation(scanId) {
                 <button
                     type="button"
                     class="secondary-button"
-                    onclick="submitReview(${scan.id}, 'DISMISSED')"
+                    onclick="submitReview(
+                        ${scan.id},
+                        'DISMISSED'
+                    )"
                 >
                     Dismiss Flag
                 </button>
@@ -589,7 +671,6 @@ function openInvestigation(scanId) {
     `;
 
     panel.classList.remove("hidden");
-
     panel.style.display = "block";
 
     panel.scrollIntoView({
@@ -601,7 +682,9 @@ function openInvestigation(scanId) {
 
 function closeInvestigation() {
     const panel =
-        document.getElementById("investigation-panel");
+        document.getElementById(
+            "investigation-panel"
+        );
 
     if (!panel) {
         console.error(
@@ -612,40 +695,53 @@ function closeInvestigation() {
     }
 
     panel.classList.add("hidden");
-
     panel.style.display = "none";
 }
 
 
-async function submitReview(scanId, reviewStatus) {
+async function submitReview(
+    scanId,
+    reviewStatus
+) {
     const noteElement =
-        document.getElementById("review-note");
-
-    const messageElement =
-        document.getElementById("review-message");
-
-    const reviewNote = noteElement
-        ? noteElement.value.trim()
-        : "";
-
-    try {
-        const response = await fetch(
-            `${API_BASE}/scan/${scanId}/review`,
-            {
-                method: "PATCH",
-
-                headers: {
-                    "Content-Type": "application/json"
-                },
-
-                body: JSON.stringify({
-                    review_status: reviewStatus,
-                    review_note: reviewNote || null
-                })
-            }
+        document.getElementById(
+            "review-note"
         );
 
-        const data = await response.json();
+    const messageElement =
+        document.getElementById(
+            "review-message"
+        );
+
+    const reviewNote =
+        noteElement
+            ? noteElement.value.trim()
+            : "";
+
+    try {
+        const response =
+            await fetch(
+                `${API_BASE}/scan/${scanId}/review`,
+                {
+                    method: "PATCH",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        review_status:
+                            reviewStatus,
+
+                        review_note:
+                            reviewNote || null
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -718,24 +814,29 @@ async function handleProductSubmit(event) {
         );
 
     try {
-        const response = await fetch(
-            `${API_BASE}/products/`,
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                `${API_BASE}/products/`,
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    code,
-                    product_name: productName,
-                    batch_id: batchId
-                })
-            }
-        );
+                    body: JSON.stringify({
+                        code,
+                        product_name:
+                            productName,
+                        batch_id:
+                            batchId
+                    })
+                }
+            );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -815,25 +916,33 @@ async function handleScanSubmit(event) {
         );
 
     try {
-        const response = await fetch(
-            `${API_BASE}/scan/`,
-            {
-                method: "POST",
+        const response =
+            await fetch(
+                `${API_BASE}/scan/`,
+                {
+                    method: "POST",
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-                body: JSON.stringify({
-                    code,
-                    timestamp,
-                    latitude: Number(latitude),
-                    longitude: Number(longitude)
-                })
-            }
-        );
+                    body: JSON.stringify({
+                        code,
 
-        const data = await response.json();
+                        timestamp,
+
+                        latitude:
+                            Number(latitude),
+
+                        longitude:
+                            Number(longitude)
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
             throw new Error(
@@ -843,9 +952,10 @@ async function handleScanSubmit(event) {
         }
 
         if (message) {
-            message.textContent = data.flagged
-                ? "Scan submitted and flagged."
-                : "Scan submitted successfully.";
+            message.textContent =
+                data.flagged
+                    ? "Scan submitted and flagged."
+                    : "Scan submitted successfully.";
 
             message.classList.remove(
                 "form-error"
@@ -887,9 +997,16 @@ async function handleScanSubmit(event) {
 
 function getRiskClass(scan) {
     const reason =
-        (scan.flag_reason || "").toLowerCase();
+        (
+            scan.flag_reason ||
+            ""
+        ).toLowerCase();
 
-    if (reason.includes("impossible travel")) {
+    if (
+        reason.includes(
+            "impossible travel"
+        )
+    ) {
         return "review-high";
     }
 
@@ -915,9 +1032,16 @@ function getRiskClass(scan) {
 
 function getRiskText(scan) {
     const reason =
-        (scan.flag_reason || "").toLowerCase();
+        (
+            scan.flag_reason ||
+            ""
+        ).toLowerCase();
 
-    if (reason.includes("impossible travel")) {
+    if (
+        reason.includes(
+            "impossible travel"
+        )
+    ) {
         return "High";
     }
 
@@ -941,7 +1065,10 @@ function getRiskText(scan) {
 }
 
 
-function formatLocation(latitude, longitude) {
+function formatLocation(
+    latitude,
+    longitude
+) {
     if (
         latitude === null ||
         latitude === undefined ||
@@ -960,9 +1087,14 @@ function formatDate(timestamp) {
         return "Unknown";
     }
 
-    const date = new Date(timestamp);
+    const date =
+        new Date(timestamp);
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
         return timestamp;
     }
 

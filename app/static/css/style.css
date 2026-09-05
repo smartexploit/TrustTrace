@@ -11,6 +11,11 @@ body {
     line-height: 1.5;
 }
 
+
+/* =========================
+   Top Navigation
+   ========================= */
+
 .topbar {
     background: #111827;
     color: white;
@@ -57,12 +62,30 @@ body {
     font-size: 14px;
 }
 
+.api-status.online {
+    color: #dcfce7;
+}
+
+.api-status.offline {
+    color: #fecaca;
+}
+
 .status-dot {
     width: 10px;
     height: 10px;
     background: #22c55e;
     border-radius: 50%;
+    flex-shrink: 0;
 }
+
+.api-status.offline .status-dot {
+    background: #dc2626;
+}
+
+
+/* =========================
+   Main Container
+   ========================= */
 
 .container {
     max-width: 1450px;
@@ -70,7 +93,10 @@ body {
     padding: 0 20px;
 }
 
-/* Alert */
+
+/* =========================
+   Alert
+   ========================= */
 
 .alert-banner {
     display: flex;
@@ -125,7 +151,10 @@ body {
     font-size: 14px;
 }
 
-/* Statistics */
+
+/* =========================
+   Statistics
+   ========================= */
 
 .summary-grid {
     display: grid;
@@ -182,7 +211,10 @@ body {
     color: #16a34a;
 }
 
-/* Panels */
+
+/* =========================
+   Panels
+   ========================= */
 
 .panel {
     background: white;
@@ -211,7 +243,10 @@ body {
     font-size: 13px;
 }
 
-/* Actions */
+
+/* =========================
+   Actions
+   ========================= */
 
 .actions-grid {
     display: grid;
@@ -267,7 +302,10 @@ form {
     gap: 15px;
 }
 
-/* Buttons */
+
+/* =========================
+   Buttons
+   ========================= */
 
 button {
     border: none;
@@ -284,15 +322,37 @@ button:hover {
     background: #1d4ed8;
 }
 
+.primary-button,
+.secondary-button {
+    cursor: pointer;
+    border: none;
+}
+
+.primary-button {
+    padding: 10px 16px;
+    background: #2563eb;
+    color: white;
+    border-radius: 7px;
+    font-weight: 600;
+}
+
+.primary-button:hover {
+    background: #1d4ed8;
+}
+
 .secondary-button {
     background: #374151;
+    color: white;
 }
 
 .secondary-button:hover {
     background: #1f2937;
 }
 
-/* Messages */
+
+/* =========================
+   Messages
+   ========================= */
 
 .form-message {
     margin-top: 14px;
@@ -309,9 +369,13 @@ button:hover {
     color: #dc2626;
 }
 
-/* Tables */
 
-.table-container {
+/* =========================
+   Tables
+   ========================= */
+
+.table-container,
+.table-wrapper {
     overflow-x: auto;
 }
 
@@ -372,7 +436,10 @@ tbody tr:hover {
     color: #6b7280;
 }
 
-/* Detection Intelligence */
+
+/* =========================
+   Detection Intelligence
+   ========================= */
 
 .intelligence-panel {
     margin-top: 24px;
@@ -399,12 +466,15 @@ tbody tr:hover {
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     background: #ffffff;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .detection-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .detection-icon {
@@ -426,7 +496,10 @@ tbody tr:hover {
     line-height: 1.5;
 }
 
-/* Human Review */
+
+/* =========================
+   Status Badges
+   ========================= */
 
 .status-badge {
     display: inline-flex;
@@ -436,6 +509,7 @@ tbody tr:hover {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.4px;
+    white-space: nowrap;
 }
 
 .status-badge.flagged {
@@ -444,6 +518,21 @@ tbody tr:hover {
 }
 
 .status-badge.safe {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-badge.review-high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-badge.review-medium {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.status-badge.review-low {
     background: #dcfce7;
     color: #15803d;
 }
@@ -482,7 +571,10 @@ tbody tr:hover {
     white-space: nowrap;
 }
 
-/* Investigation Table */
+
+/* =========================
+   Investigation Table
+   ========================= */
 
 #flags-table-body tr {
     background: #fffafa;
@@ -499,7 +591,10 @@ tbody tr:hover {
     line-height: 1.5;
 }
 
-/* Investigation Review */
+
+/* =========================
+   Investigation Review
+   ========================= */
 
 .investigation-panel {
     border-left: 4px solid #2563eb;
@@ -593,7 +688,8 @@ tbody tr:hover {
 .investigation-note textarea:focus {
     outline: none;
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .investigation-actions {
@@ -609,24 +705,6 @@ tbody tr:hover {
     flex-wrap: wrap;
 }
 
-.primary-button,
-.secondary-button {
-    cursor: pointer;
-    border: none;
-}
-
-.primary-button {
-    padding: 10px 16px;
-    background: #2563eb;
-    color: white;
-    border-radius: 7px;
-    font-weight: 600;
-}
-
-.primary-button:hover {
-    background: #1d4ed8;
-}
-
 .investigation-actions .secondary-button {
     padding: 10px 16px;
     border-radius: 7px;
@@ -635,7 +713,8 @@ tbody tr:hover {
     font-weight: 600;
 }
 
-.investigation-actions .secondary-button:hover {
+.investigation-actions
+.secondary-button:hover {
     background: #d1d5db;
 }
 
@@ -653,7 +732,10 @@ tbody tr:hover {
     color: #b91c1c;
 }
 
-/* Footer */
+
+/* =========================
+   Footer
+   ========================= */
 
 footer {
     text-align: center;
@@ -662,7 +744,10 @@ footer {
     font-size: 13px;
 }
 
-/* Responsive */
+
+/* =========================
+   Responsive
+   ========================= */
 
 @media (max-width: 1000px) {
     .detection-grid {
