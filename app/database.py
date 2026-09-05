@@ -1,6 +1,12 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+
+DATA_DIR = "data"
+
+os.makedirs(DATA_DIR, exist_ok=True)
 
 DATABASE_URL = "sqlite:///./data/trusttrace.db"
 
