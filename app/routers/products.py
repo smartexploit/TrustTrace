@@ -1,6 +1,10 @@
+from io import BytesIO
 from typing import List
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+import qrcode
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -50,4 +54,49 @@ def get_products(
         db.query(Product)
         .order_by(Product.code.asc())
         .all()
+    )
+
+
+@router.get("/{code}/qr")
+def generate_product_qr(
+    code: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(
+        Product.code == code
+    ).first()
+
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            detail="Product code not registered"
+        )
+
+    verification_url = (
+        f"{str(request.base_url).rstrip('/')}/verify?code={quote(product.code)}"
+    )
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4
+    )
+    qr.add_data(verification_url)
+    qr.make(fit=True)
+
+    image = qr.make_image(fill_color="black", back_color="white")
+    image_buffer = BytesIO()
+    image.save(image_buffer, format="PNG")
+    image_buffer.seek(0)
+
+    return StreamingResponse(
+        image_buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": (
+                f'inline; filename="{product.code}-trusttrace-qr.png"'
+            )
+        }
     )

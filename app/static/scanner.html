@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustTrace Scanner</title>
+
+    <script
+        src="https://unpkg.com/html5-qrcode"
+        type="text/javascript">
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #0b0b0b;
+            color: #f5f5f5;
+        }
+
+        .header {
+            padding: 22px 20px;
+            text-align: center;
+            border-bottom: 1px solid #292929;
+            background: #111;
+        }
+
+        .brand {
+            color: #d4af37;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            margin-top: 6px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .container {
+            width: min(520px, calc(100% - 28px));
+            margin: 28px auto;
+        }
+
+        .card {
+            background: #151515;
+            border: 1px solid #292929;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        .help {
+            color: #aaa;
+            line-height: 1.6;
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        #reader {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #000;
+            min-height: 280px;
+        }
+
+        #reader video {
+            width: 100% !important;
+            height: auto !important;
+            border-radius: 12px;
+        }
+
+        #reader__scan_region {
+            min-height: 260px;
+        }
+
+        #reader__dashboard {
+            padding: 10px !important;
+            background: #111;
+            color: #f5f5f5;
+        }
+
+        #reader__dashboard_section_csr {
+            color: #aaa;
+        }
+
+        #reader__dashboard_section_swaplink {
+            color: #d4af37 !important;
+        }
+
+        #reader__status_span {
+            color: #aaa;
+        }
+
+        .result {
+            display: none;
+            margin-top: 18px;
+            padding: 15px;
+            border-radius: 12px;
+            background: #202020;
+            border: 1px solid #343434;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result strong {
+            display: block;
+            margin-bottom: 7px;
+        }
+
+        .code {
+            color: #d4af37;
+            word-break: break-all;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .button {
+            flex: 1;
+            min-width: 150px;
+            border: 0;
+            border-radius: 9px;
+            padding: 12px 15px;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .primary {
+            background: #d4af37;
+            color: #111;
+        }
+
+        .secondary {
+            background: #292929;
+            color: #f5f5f5;
+        }
+
+        .message {
+            margin-top: 15px;
+            color: #aaa;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+
+        .success {
+            color: #22c55e;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .manual {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #292929;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #bbb;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #3a3a3a;
+            border-radius: 9px;
+            background: #0d0d0d;
+            color: #fff;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #d4af37;
+        }
+
+        .camera-help {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 9px;
+            background: #1d1d1d;
+            border: 1px solid #333;
+            color: #999;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            color: #777;
+            font-size: 12px;
+            padding: 25px 15px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                width: calc(100% - 20px);
+                margin: 18px auto;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .button {
+                min-width: 100%;
+            }
+
+            #reader__dashboard_section_csr button {
+                width: 100% !important;
+                margin: 5px 0 !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="brand">TrustTrace</div>
+        <div class="subtitle">Product Authenticity Scanner</div>
+    </header>
+
+    <main class="container">
+
+        <section class="card">
+
+            <h1>Scan Product QR Code</h1>
+
+            <div class="help">
+                Point your camera at a TrustTrace QR code.
+                After the code is detected, TrustTrace will
+                take you to the product verification page.
+            </div>
+
+            <div id="reader"></div>
+
+            <div
+                id="result"
+                class="result"
+            >
+                <strong>QR code detected</strong>
+
+                <div
+                    class="code"
+                    id="detected-code">
+                </div>
+
+                <div class="actions">
+
+                    <a
+                        id="verify-button"
+                        class="button primary"
+                        href="#">
+                        Verify Product
+                    </a>
+
+                    <button
+                        id="scan-again"
+                        class="button secondary"
+                        type="button">
+                        Scan Again
+                    </button>
+
+                </div>
+            </div>
+
+            <div
+                id="message"
+                class="message">
+                Checking camera availability...
+            </div>
+
+            <div
+                id="camera-help"
+                class="camera-help">
+                If the camera does not start, make sure your browser
+                has camera permission and that TrustTrace is being
+                opened through a secure HTTPS connection.
+            </div>
+
+            <div class="manual">
+
+                <label for="manual-code">
+                    Or enter a product code manually
+                </label>
+
+                <input
+                    id="manual-code"
+                    type="text"
+                    maxlength="9"
+                    placeholder="TT-ABC123"
+                    autocomplete="off">
+
+                <div class="actions">
+
+                    <button
+                        id="manual-verify"
+                        class="button primary"
+                        type="button">
+                        Verify Code
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+        TrustTrace &mdash; Powered by Innovation. Driven by Results.
+    </footer>
+
+    <script>
+        let scanner = null;
+        let detectedCode = null;
+        let scannerRunning = false;
+        let availableCameras = [];
+
+        const message =
+            document.getElementById("message");
+
+        const result =
+            document.getElementById("result");
+
+        const detectedCodeElement =
+            document.getElementById("detected-code");
+
+        const verifyButton =
+            document.getElementById("verify-button");
+
+        const scanAgainButton =
+            document.getElementById("scan-again");
+
+        const manualCode =
+            document.getElementById("manual-code");
+
+        const manualVerifyButton =
+            document.getElementById("manual-verify");
+
+
+        function setMessage(text, type = "") {
+            message.textContent = text;
+            message.className = `message ${type}`;
+        }
+
+
+        function extractProductCode(value) {
+            const text = String(value || "").trim();
+
+            try {
+                const url = new URL(text);
+
+                const code =
+                    url.searchParams.get("code");
+
+                if (code) {
+                    return code.toUpperCase();
+                }
+            } catch (error) {
+                // QR content may be a plain product code.
+            }
+
+            const match = text
+                .toUpperCase()
+                .match(/TT-[A-Z0-9]{6}/);
+
+            return match ? match[0] : null;
+        }
+
+
+        function showDetectedCode(code) {
+            detectedCode = code;
+
+            detectedCodeElement.textContent =
+                code || "Unrecognized QR content";
+
+            verifyButton.href = code
+                ? `/verify?code=${encodeURIComponent(code)}`
+                : "#";
+
+            result.classList.add("show");
+        }
+
+
+        async function stopScanner() {
+            if (!scanner) {
+                scannerRunning = false;
+                return;
+            }
+
+            try {
+                if (scannerRunning) {
+                    await scanner.stop();
+                }
+            } catch (error) {
+                console.warn(
+                    "Scanner stop warning:",
+                    error
+                );
+            }
+
+            try {
+                scanner.clear();
+            } catch (error) {
+                console.warn(
+                    "Scanner clear warning:",
+                    error
+                );
+            }
+
+            scannerRunning = false;
+        }
+
+
+        async function getCameras() {
+            if (
+                typeof Html5Qrcode === "undefined"
+            ) {
+                throw new Error(
+                    "QR scanner library could not be loaded."
+                );
+            }
+
+            try {
+                availableCameras =
+                    await Html5Qrcode.getCameras();
+            } catch (error) {
+                console.error(
+                    "Camera enumeration error:",
+                    error
+                );
+
+                throw new Error(
+                    "Camera permission was denied or no camera is available."
+                );
+            }
+
+            if (
+                !availableCameras ||
+                availableCameras.length === 0
+            ) {
+                throw new Error(
+                    "No camera was found on this device."
+                );
+            }
+
+            return availableCameras;
+        }
+
+
+        function selectBestCamera(cameras) {
+            if (!cameras.length) {
+                return null;
+            }
+
+            const preferredCamera =
+                cameras.find((camera) => {
+                    const label =
+                        (camera.label || "").toLowerCase();
+
+                    return (
+                        label.includes("back") ||
+                        label.includes("rear") ||
+                        label.includes("environment")
+                    );
+                });
+
+            return preferredCamera || cameras[0];
+        }
+
+
+        async function startScanner() {
+            await stopScanner();
+
+            result.classList.remove("show");
+
+            detectedCode = null;
+
+            setMessage(
+                "Requesting camera access..."
+            );
+
+            if (
+                typeof Html5Qrcode === "undefined"
+            ) {
+                setMessage(
+                    "QR scanner library could not be loaded. Use manual code entry below.",
+                    "error"
+                );
+
+                return;
+            }
+
+            try {
+                const cameras =
+                    await getCameras();
+
+                const selectedCamera =
+                    selectBestCamera(cameras);
+
+                if (!selectedCamera) {
+                    throw new Error(
+                        "No usable camera was found."
+                    );
+                }
+
+                scanner =
+                    new Html5Qrcode("reader");
+
+                setMessage(
+                    "Camera permission granted. Starting scanner...",
+                    "success"
+                );
+
+                await scanner.start(
+                    selectedCamera.id,
+                    {
+                        fps: 10,
+
+                        qrbox: {
+                            width: 250,
+                            height: 250
+                        },
+
+                        aspectRatio: 1
+                    },
+
+                    async (decodedText) => {
+                        if (!scannerRunning) {
+                            return;
+                        }
+
+                        scannerRunning = false;
+
+                        const code =
+                            extractProductCode(
+                                decodedText
+                            );
+
+                        await stopScanner();
+
+                        if (!code) {
+                            showDetectedCode(
+                                decodedText
+                            );
+
+                            setMessage(
+                                "QR detected, but it does not contain a valid TrustTrace product code.",
+                                "warning"
+                            );
+
+                            return;
+                        }
+
+                        showDetectedCode(code);
+
+                        setMessage(
+                            "Product QR detected successfully. Select Verify Product.",
+                            "success"
+                        );
+                    },
+
+                    () => {
+                        // QR scan frame did not decode.
+                    }
+                );
+
+                scannerRunning = true;
+
+                setMessage(
+                    "Camera is ready. Point it at a TrustTrace QR code.",
+                    "success"
+                );
+
+            } catch (error) {
+                console.error(
+                    "Camera startup error:",
+                    error
+                );
+
+                scannerRunning = false;
+
+                let errorMessage =
+                    "Camera could not be started.";
+
+                if (
+                    error &&
+                    error.message
+                ) {
+                    errorMessage =
+                        error.message;
+                }
+
+                setMessage(
+                    `${errorMessage} You can enter the product code manually below.`,
+                    "warning"
+                );
+            }
+        }
+
+
+        scanAgainButton.addEventListener(
+            "click",
+            async () => {
+                await startScanner();
+            }
+        );
+
+
+        manualVerifyButton.addEventListener(
+            "click",
+            () => {
+                const code =
+                    manualCode.value
+                        .trim()
+                        .toUpperCase();
+
+                const validCode =
+                    /^TT-[A-Z0-9]{6}$/.test(code);
+
+                if (!validCode) {
+                    setMessage(
+                        "Enter a valid TrustTrace product code such as TT-ABC123.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                window.location.href =
+                    `/verify?code=${encodeURIComponent(code)}`;
+            }
+        );
+
+
+        manualCode.addEventListener(
+            "keydown",
+            (event) => {
+                if (event.key === "Enter") {
+                    manualVerifyButton.click();
+                }
+            }
+        );
+
+
+        window.addEventListener(
+            "beforeunload",
+            () => {
+                if (
+                    scanner &&
+                    scannerRunning
+                ) {
+                    scanner.stop().catch(
+                        () => {}
+                    );
+                }
+            }
+        );
+
+
+        startScanner();
+    </script>
+
+</body>
+</html>

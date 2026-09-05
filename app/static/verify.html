@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111827">
+    <title>Verify Product | TrustTrace</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 18px 20px;
+        }
+
+        .header-inner {
+            width: min(100%, 760px);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+        }
+
+        .brand span {
+            color: #fbbf24;
+        }
+
+        .tagline {
+            color: #d1d5db;
+            font-size: 12px;
+        }
+
+        .main {
+            width: min(100%, 760px);
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .card {
+            width: 100%;
+            background: white;
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 12px 35px rgba(17, 24, 39, 0.08);
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .shield {
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            font-size: 30px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 28px;
+        }
+
+        .intro p {
+            margin: 0;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .search-form input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 13px 14px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .search-form input:focus {
+            border-color: #111827;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+        }
+
+        .search-form button {
+            border: 0;
+            border-radius: 10px;
+            padding: 0 20px;
+            background: #111827;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .search-form button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .result {
+            display: none;
+            border-radius: 14px;
+            padding: 22px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .result.visible {
+            display: block;
+        }
+
+        .result.authentic {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+
+        .result.suspicious {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .result.unknown {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .status-icon {
+            width: 52px;
+            height: 52px;
+            flex: 0 0 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            background: white;
+        }
+
+        .status-title {
+            margin: 0 0 4px;
+            font-size: 22px;
+        }
+
+        .status-label {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+
+        .message {
+            margin: 0 0 20px;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .detail {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(209, 213, 219, 0.8);
+            border-radius: 10px;
+            padding: 13px;
+        }
+
+        .detail-label {
+            display: block;
+            margin-bottom: 5px;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            display: block;
+            color: #111827;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .reason {
+            margin-top: 14px;
+            padding: 13px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(252, 165, 165, 0.8);
+            color: #991b1b;
+            line-height: 1.5;
+        }
+
+        .loading,
+        .error {
+            display: none;
+            margin-top: 14px;
+            padding: 13px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .loading {
+            color: #374151;
+            background: #f3f4f6;
+        }
+
+        .error {
+            color: #991b1b;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .loading.visible,
+        .error.visible {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 18px 20px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .main {
+                padding: 24px 14px 40px;
+            }
+
+            .card {
+                padding: 22px 18px;
+                border-radius: 14px;
+            }
+
+            .header-inner {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .search-form {
+                flex-direction: column;
+            }
+
+            .search-form button {
+                min-height: 46px;
+            }
+
+            .details {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="header">
+            <div class="header-inner">
+                <div class="brand">Trust<span>Trace</span></div>
+                <div class="tagline">Product authenticity verification</div>
+            </div>
+        </header>
+
+        <main class="main">
+            <section class="card">
+                <div class="intro">
+                    <div class="shield">🛡️</div>
+                    <h1>Verify this product</h1>
+                    <p>Enter the TrustTrace product code to check its registration and latest verification status.</p>
+                </div>
+
+                <form class="search-form" id="verification-form">
+                    <input
+                        id="product-code"
+                        type="text"
+                        placeholder="Example: TT-ABC123"
+                        maxlength="9"
+                        autocomplete="off"
+                        required
+                    >
+                    <button id="verify-button" type="submit">Verify</button>
+                </form>
+
+                <div class="loading" id="loading">Checking product...</div>
+                <div class="error" id="error"></div>
+
+                <div class="result" id="result">
+                    <div class="status-row">
+                        <div class="status-icon" id="status-icon"></div>
+                        <div>
+                            <h2 class="status-title" id="status-title"></h2>
+                            <p class="status-label" id="status-label"></p>
+                        </div>
+                    </div>
+
+                    <p class="message" id="message"></p>
+
+                    <div class="details" id="details">
+                        <div class="detail">
+                            <span class="detail-label">Product</span>
+                            <span class="detail-value" id="product-name">—</span>
+                        </div>
+                        <div class="detail">
+                            <span class="detail-label">Batch</span>
+                            <span class="detail-value" id="batch-id">—</span>
+                        </div>
+                        <div class="detail">
+                            <span class="detail-label">Product code</span>
+                            <span class="detail-value" id="verified-code">—</span>
+                        </div>
+                        <div class="detail">
+                            <span class="detail-label">Registration</span>
+                            <span class="detail-value" id="registration">—</span>
+                        </div>
+                    </div>
+
+                    <div class="reason" id="reason" style="display: none;"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            Powered by TrustTrace · Product authenticity and distribution intelligence
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById("verification-form");
+        const input = document.getElementById("product-code");
+        const button = document.getElementById("verify-button");
+        const result = document.getElementById("result");
+        const loading = document.getElementById("loading");
+        const error = document.getElementById("error");
+        const statusIcon = document.getElementById("status-icon");
+        const statusTitle = document.getElementById("status-title");
+        const statusLabel = document.getElementById("status-label");
+        const message = document.getElementById("message");
+        const productName = document.getElementById("product-name");
+        const batchId = document.getElementById("batch-id");
+        const verifiedCode = document.getElementById("verified-code");
+        const registration = document.getElementById("registration");
+        const reason = document.getElementById("reason");
+
+        function getCodeFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return (params.get("code") || "").trim().toUpperCase();
+        }
+
+        function setLoading(isLoading) {
+            button.disabled = isLoading;
+            button.textContent = isLoading ? "Checking..." : "Verify";
+            loading.classList.toggle("visible", isLoading);
+        }
+
+        function showError(text) {
+            error.textContent = text;
+            error.classList.add("visible");
+        }
+
+        function clearError() {
+            error.textContent = "";
+            error.classList.remove("visible");
+        }
+
+        function renderResult(data) {
+            result.className = "result visible";
+            reason.style.display = "none";
+            reason.textContent = "";
+
+            productName.textContent = data.product_name || "Not registered";
+            batchId.textContent = data.batch_id || "Not available";
+            verifiedCode.textContent = data.code || input.value;
+            registration.textContent = data.registered ? "Registered" : "Not registered";
+            message.textContent = data.message || "";
+
+            if (data.status === "AUTHENTIC") {
+                result.classList.add("authentic");
+                statusIcon.textContent = "✓";
+                statusTitle.textContent = "Product Verified";
+                statusLabel.textContent = "AUTHENTIC";
+            } else if (data.status === "SUSPICIOUS") {
+                result.classList.add("suspicious");
+                statusIcon.textContent = "!";
+                statusTitle.textContent = "Suspicious Activity Detected";
+                statusLabel.textContent = "REQUIRES INVESTIGATION";
+
+                if (data.last_scan_reason) {
+                    reason.textContent = "Detection reason: " + data.last_scan_reason;
+                    reason.style.display = "block";
+                }
+            } else {
+                result.classList.add("unknown");
+                statusIcon.textContent = "?";
+                statusTitle.textContent = "Product Not Recognized";
+                statusLabel.textContent = "UNKNOWN CODE";
+            }
+        }
+
+        async function verifyCode(code) {
+            clearError();
+            result.className = "result";
+            setLoading(true);
+
+            try {
+                const response = await fetch("/verify/" + encodeURIComponent(code));
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Unable to verify this product code.");
+                }
+
+                renderResult(data);
+            } catch (err) {
+                showError(err.message || "Unable to verify this product code.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            const code = input.value.trim().toUpperCase();
+
+            if (!code) {
+                showError("Please enter a product code.");
+                return;
+            }
+
+            input.value = code;
+            verifyCode(code);
+        });
+
+        const initialCode = getCodeFromUrl();
+
+        if (initialCode) {
+            input.value = initialCode;
+            verifyCode(initialCode);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustTrace QR Manager</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --gold-dark: #a67c00;
+            --black: #111111;
+            --dark: #1a1a1a;
+            --white: #ffffff;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --success-bg: #ecfdf5;
+            --success-text: #047857;
+            --error-bg: #fef2f2;
+            --error-text: #b91c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f7f7f5;
+            color: var(--black);
+        }
+
+        .topbar {
+            background: var(--black);
+            color: var(--white);
+            padding: 22px 24px;
+        }
+
+        .topbar-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .brand {
+            color: var(--gold);
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            margin-top: 6px;
+            color: #d1d5db;
+            font-size: 14px;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 32px auto;
+            padding: 0 20px 50px;
+        }
+
+        .intro {
+            margin-bottom: 24px;
+        }
+
+        .intro h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+
+        .intro p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .message {
+            display: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            display: block;
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .message.error {
+            display: block;
+            background: var(--error-bg);
+            color: var(--error-text);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+
+        .product-meta {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .qr-box {
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 18px 0;
+            background: #fafafa;
+            border: 1px dashed #d1d5db;
+            border-radius: 10px;
+        }
+
+        .qr-box img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+        }
+
+        .qr-placeholder {
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            font-weight: 700;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .button.primary {
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .button.primary:hover {
+            background: #2a2a2a;
+        }
+
+        .button.secondary {
+            background: var(--white);
+            border-color: #d1d5db;
+            color: var(--black);
+        }
+
+        .button.secondary:hover {
+            border-color: var(--gold-dark);
+        }
+
+        .loading,
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 35px 10px;
+        }
+
+        @media (max-width: 600px) {
+            .intro h1 {
+                font-size: 25px;
+            }
+
+            main {
+                margin-top: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">TrustTrace</div>
+            <div class="subtitle">Product QR Code Manager</div>
+        </div>
+    </header>
+
+    <main>
+        <section class="intro">
+            <h1>Product QR Codes</h1>
+            <p>Generate a TrustTrace verification QR code for every registered product.</p>
+        </section>
+
+        <div id="message" class="message"></div>
+        <section id="products" class="grid">
+            <div class="loading">Loading registered products...</div>
+        </section>
+    </main>
+
+    <script>
+        const productsContainer = document.getElementById("products");
+        const message = document.getElementById("message");
+
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `message ${type}`;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function renderProducts(products) {
+            if (!products.length) {
+                productsContainer.innerHTML = '<div class="empty">No registered products found.</div>';
+                return;
+            }
+
+            productsContainer.innerHTML = products.map(product => {
+                const code = encodeURIComponent(product.code);
+                const qrUrl = `/products/${code}/qr`;
+
+                return `
+                    <article class="card">
+                        <h2>${escapeHtml(product.product_name)}</h2>
+                        <div class="product-meta">
+                            <strong>Code:</strong> ${escapeHtml(product.code)}<br>
+                            <strong>Batch:</strong> ${escapeHtml(product.batch_id)}
+                        </div>
+
+                        <div class="qr-box">
+                            <img
+                                src="${qrUrl}"
+                                alt="TrustTrace QR code for ${escapeHtml(product.code)}"
+                                loading="lazy"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                            >
+                            <div class="qr-placeholder" style="display:none;">
+                                Unable to generate QR code.
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <a class="button primary" href="${qrUrl}" target="_blank" rel="noopener">
+                                Open QR
+                            </a>
+                            <a class="button secondary" href="${qrUrl}" download="${escapeHtml(product.code)}-trusttrace-qr.png">
+                                Download QR
+                            </a>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch("/products/");
+
+                if (!response.ok) {
+                    throw new Error("Unable to load registered products.");
+                }
+
+                const products = await response.json();
+                renderProducts(products);
+            } catch (error) {
+                productsContainer.innerHTML = "";
+                showMessage(error.message, "error");
+            }
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>

@@ -8,25 +8,21 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDashboard();
 
     const refreshButton = document.getElementById("refresh-btn");
-
     if (refreshButton) {
         refreshButton.addEventListener("click", loadDashboard);
     }
 
     const productForm = document.getElementById("product-form");
-
     if (productForm) {
         productForm.addEventListener("submit", handleProductSubmit);
     }
 
     const scanForm = document.getElementById("scan-form");
-
     if (scanForm) {
         scanForm.addEventListener("submit", handleScanSubmit);
     }
 
     const closeButton = document.getElementById("close-investigation");
-
     if (closeButton) {
         closeButton.addEventListener("click", function (event) {
             event.preventDefault();
@@ -60,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+
 async function loadDashboard() {
     await Promise.all([
         loadProducts(),
@@ -70,6 +67,7 @@ async function loadDashboard() {
     updateSummary();
     updateApiStatus();
 }
+
 
 async function loadProducts() {
     try {
@@ -87,6 +85,7 @@ async function loadProducts() {
     }
 }
 
+
 async function loadScans() {
     try {
         const response = await fetch(`${API_BASE}/scan/`);
@@ -102,6 +101,7 @@ async function loadScans() {
         console.error("Error loading scans:", error);
     }
 }
+
 
 async function loadFlags() {
     try {
@@ -121,18 +121,12 @@ async function loadFlags() {
     }
 }
 
+
 function updateSummary() {
-    const totalScansElement =
-        document.getElementById("total-scans");
-
-    const flaggedScansElement =
-        document.getElementById("flagged-scans");
-
-    const safeScansElement =
-        document.getElementById("safe-scans");
-
-    const totalProductsElement =
-        document.getElementById("total-products");
+    const totalScansElement = document.getElementById("total-scans");
+    const flaggedScansElement = document.getElementById("flagged-scans");
+    const safeScansElement = document.getElementById("safe-scans");
+    const totalProductsElement = document.getElementById("total-products");
 
     const totalScanCount = scans.length;
 
@@ -140,8 +134,7 @@ function updateSummary() {
         (scan) => scan.flagged === true
     ).length;
 
-    const safeScanCount =
-        totalScanCount - flaggedScanCount;
+    const safeScanCount = totalScanCount - flaggedScanCount;
 
     if (totalScansElement) {
         totalScansElement.textContent = totalScanCount;
@@ -160,22 +153,23 @@ function updateSummary() {
     }
 }
 
+
 function updateApiStatus() {
-    const apiStatus =
-        document.getElementById("api-status");
+    const apiStatus = document.getElementById("api-status");
 
     if (!apiStatus) {
         return;
     }
 
     apiStatus.textContent = "API Connected";
+
     apiStatus.classList.remove("offline");
     apiStatus.classList.add("online");
 }
 
+
 function renderProducts() {
-    const tableBody =
-        document.getElementById("products-table-body");
+    const tableBody = document.getElementById("products-table-body");
 
     if (!tableBody) {
         return;
@@ -198,19 +192,54 @@ function renderProducts() {
     products.forEach((product) => {
         const row = document.createElement("tr");
 
+        const code = encodeURIComponent(product.code);
+
+        const qrUrl = `${API_BASE}/products/${code}/qr`;
+
         row.innerHTML = `
-            <td>${escapeHtml(product.code)}</td>
-            <td>${escapeHtml(product.product_name)}</td>
-            <td>${escapeHtml(product.batch_id)}</td>
+            <td>
+                ${escapeHtml(product.code)}
+
+                <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
+
+                    <a
+                        href="${qrUrl}"
+                        target="_blank"
+                        rel="noopener"
+                        class="secondary-button"
+                        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
+                    >
+                        View QR
+                    </a>
+
+                    <a
+                        href="${qrUrl}"
+                        download="${escapeHtml(product.code)}-trusttrace-qr.png"
+                        class="secondary-button"
+                        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
+                    >
+                        Download QR
+                    </a>
+
+                </div>
+            </td>
+
+            <td>
+                ${escapeHtml(product.product_name)}
+            </td>
+
+            <td>
+                ${escapeHtml(product.batch_id)}
+            </td>
         `;
 
         tableBody.appendChild(row);
     });
 }
 
+
 function renderScans() {
-    const tableBody =
-        document.getElementById("scans-table-body");
+    const tableBody = document.getElementById("scans-table-body");
 
     if (!tableBody) {
         return;
@@ -233,18 +262,18 @@ function renderScans() {
     scans.forEach((scan) => {
         const row = document.createElement("tr");
 
-        const statusClass =
-            scan.flagged
-                ? "status-flagged"
-                : "status-safe";
+        const statusClass = scan.flagged
+            ? "status-flagged"
+            : "status-safe";
 
-        const statusText =
-            scan.flagged
-                ? "Flagged"
-                : "Safe";
+        const statusText = scan.flagged
+            ? "Flagged"
+            : "Safe";
 
         row.innerHTML = `
-            <td>${scan.id}</td>
+            <td>
+                ${scan.id}
+            </td>
 
             <td>
                 ${escapeHtml(scan.code)}
@@ -280,9 +309,9 @@ function renderScans() {
     });
 }
 
+
 function renderFlags() {
-    const tableBody =
-        document.getElementById("flags-table-body");
+    const tableBody = document.getElementById("flags-table-body");
 
     if (!tableBody) {
         return;
@@ -309,8 +338,7 @@ function renderFlags() {
     flags.forEach((scan) => {
         const row = document.createElement("tr");
 
-        const reviewStatus =
-            scan.review_status || "PENDING";
+        const reviewStatus = scan.review_status || "PENDING";
 
         let reviewStatusClass = "review-required";
 
@@ -322,10 +350,13 @@ function renderFlags() {
         }
 
         const riskClass = getRiskClass(scan);
+
         const riskText = getRiskText(scan);
 
         row.innerHTML = `
-            <td>${scan.id}</td>
+            <td>
+                ${scan.id}
+            </td>
 
             <td>
                 ${escapeHtml(scan.code)}
@@ -383,15 +414,13 @@ function renderFlags() {
     });
 }
 
+
 function updateAlertBanner(hasFlags) {
-    const banner =
-        document.getElementById("alert-banner");
+    const banner = document.getElementById("alert-banner");
 
-    const title =
-        document.getElementById("alert-title");
+    const title = document.getElementById("alert-title");
 
-    const description =
-        document.getElementById("alert-description");
+    const description = document.getElementById("alert-description");
 
     if (!banner) {
         return;
@@ -432,16 +461,13 @@ function updateAlertBanner(hasFlags) {
     }
 }
 
+
 function openInvestigation(scanId) {
     const panel =
-        document.getElementById(
-            "investigation-panel"
-        );
+        document.getElementById("investigation-panel");
 
     const content =
-        document.getElementById(
-            "investigation-content"
-        );
+        document.getElementById("investigation-content");
 
     if (!panel || !content) {
         console.error(
@@ -451,11 +477,9 @@ function openInvestigation(scanId) {
         return;
     }
 
-    const scan =
-        scans.find(
-            (item) =>
-                Number(item.id) === Number(scanId)
-        );
+    const scan = scans.find(
+        (item) => Number(item.id) === Number(scanId)
+    );
 
     if (!scan) {
         console.error(
@@ -476,12 +500,16 @@ function openInvestigation(scanId) {
 
             <div class="investigation-item">
                 <span>Product Code</span>
-                <strong>${escapeHtml(scan.code)}</strong>
+                <strong>
+                    ${escapeHtml(scan.code)}
+                </strong>
             </div>
 
             <div class="investigation-item">
                 <span>Timestamp</span>
-                <strong>${formatDate(scan.timestamp)}</strong>
+                <strong>
+                    ${formatDate(scan.timestamp)}
+                </strong>
             </div>
 
             <div class="investigation-item">
@@ -505,6 +533,7 @@ function openInvestigation(scanId) {
 
             <div class="investigation-reason">
                 <span>Detection Reason</span>
+
                 <p>
                     ${
                         scan.flag_reason
@@ -515,6 +544,7 @@ function openInvestigation(scanId) {
             </div>
 
             <div class="investigation-note">
+
                 <label for="review-note">
                     Investigation Note
                 </label>
@@ -523,12 +553,15 @@ function openInvestigation(scanId) {
                     id="review-note"
                     placeholder="Add a review note..."
                 ></textarea>
+
             </div>
+
         </div>
 
         <div class="investigation-actions">
 
             <div class="review-actions">
+
                 <button
                     type="button"
                     class="primary-button"
@@ -544,6 +577,7 @@ function openInvestigation(scanId) {
                 >
                     Dismiss Flag
                 </button>
+
             </div>
 
             <div
@@ -555,6 +589,7 @@ function openInvestigation(scanId) {
     `;
 
     panel.classList.remove("hidden");
+
     panel.style.display = "block";
 
     panel.scrollIntoView({
@@ -563,11 +598,10 @@ function openInvestigation(scanId) {
     });
 }
 
+
 function closeInvestigation() {
     const panel =
-        document.getElementById(
-            "investigation-panel"
-        );
+        document.getElementById("investigation-panel");
 
     if (!panel) {
         console.error(
@@ -578,27 +612,21 @@ function closeInvestigation() {
     }
 
     panel.classList.add("hidden");
+
     panel.style.display = "none";
 }
 
-async function submitReview(
-    scanId,
-    reviewStatus
-) {
+
+async function submitReview(scanId, reviewStatus) {
     const noteElement =
-        document.getElementById(
-            "review-note"
-        );
+        document.getElementById("review-note");
 
     const messageElement =
-        document.getElementById(
-            "review-message"
-        );
+        document.getElementById("review-message");
 
-    const reviewNote =
-        noteElement
-            ? noteElement.value.trim()
-            : "";
+    const reviewNote = noteElement
+        ? noteElement.value.trim()
+        : "";
 
     try {
         const response = await fetch(
@@ -607,14 +635,12 @@ async function submitReview(
                 method: "PATCH",
 
                 headers: {
-                    "Content-Type":
-                        "application/json"
+                    "Content-Type": "application/json"
                 },
 
                 body: JSON.stringify({
                     review_status: reviewStatus,
-                    review_note:
-                        reviewNote || null
+                    review_note: reviewNote || null
                 })
             }
         );
@@ -667,6 +693,7 @@ async function submitReview(
     }
 }
 
+
 async function handleProductSubmit(event) {
     event.preventDefault();
 
@@ -697,8 +724,7 @@ async function handleProductSubmit(event) {
                 method: "POST",
 
                 headers: {
-                    "Content-Type":
-                        "application/json"
+                    "Content-Type": "application/json"
                 },
 
                 body: JSON.stringify({
@@ -759,6 +785,7 @@ async function handleProductSubmit(event) {
     }
 }
 
+
 async function handleScanSubmit(event) {
     event.preventDefault();
 
@@ -794,8 +821,7 @@ async function handleScanSubmit(event) {
                 method: "POST",
 
                 headers: {
-                    "Content-Type":
-                        "application/json"
+                    "Content-Type": "application/json"
                 },
 
                 body: JSON.stringify({
@@ -817,10 +843,9 @@ async function handleScanSubmit(event) {
         }
 
         if (message) {
-            message.textContent =
-                data.flagged
-                    ? "Scan submitted and flagged."
-                    : "Scan submitted successfully.";
+            message.textContent = data.flagged
+                ? "Scan submitted and flagged."
+                : "Scan submitted successfully.";
 
             message.classList.remove(
                 "form-error"
@@ -859,24 +884,27 @@ async function handleScanSubmit(event) {
     }
 }
 
+
 function getRiskClass(scan) {
     const reason =
         (scan.flag_reason || "").toLowerCase();
 
-    if (
-        reason.includes("impossible travel")
-    ) {
+    if (reason.includes("impossible travel")) {
         return "review-high";
     }
 
     if (
-        reason.includes("high scan frequency")
+        reason.includes(
+            "high scan frequency"
+        )
     ) {
         return "review-medium";
     }
 
     if (
-        reason.includes("invalid product code")
+        reason.includes(
+            "invalid product code"
+        )
     ) {
         return "review-medium";
     }
@@ -884,24 +912,27 @@ function getRiskClass(scan) {
     return "review-low";
 }
 
+
 function getRiskText(scan) {
     const reason =
         (scan.flag_reason || "").toLowerCase();
 
-    if (
-        reason.includes("impossible travel")
-    ) {
+    if (reason.includes("impossible travel")) {
         return "High";
     }
 
     if (
-        reason.includes("high scan frequency")
+        reason.includes(
+            "high scan frequency"
+        )
     ) {
         return "Medium";
     }
 
     if (
-        reason.includes("invalid product code")
+        reason.includes(
+            "invalid product code"
+        )
     ) {
         return "Medium";
     }
@@ -909,10 +940,8 @@ function getRiskText(scan) {
     return "Low";
 }
 
-function formatLocation(
-    latitude,
-    longitude
-) {
+
+function formatLocation(latitude, longitude) {
     if (
         latitude === null ||
         latitude === undefined ||
@@ -924,6 +953,7 @@ function formatLocation(
 
     return `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}`;
 }
+
 
 function formatDate(timestamp) {
     if (!timestamp) {
@@ -938,6 +968,7 @@ function formatDate(timestamp) {
 
     return date.toLocaleString();
 }
+
 
 function escapeHtml(value) {
     if (
