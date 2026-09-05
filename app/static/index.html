@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+```
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>
+    TrustTrace | Counterfeit Detection Dashboard
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/css/style.css"
+>
+```
+
+</head>
+
+<body>
+
+```
+<!-- Top Navigation -->
+<header class="topbar">
+
+    <div class="brand">
+
+        <div class="brand-mark">
+            TT
+        </div>
+
+        <div class="brand-text">
+
+            <h1>
+                TrustTrace
+            </h1>
+
+            <p>
+                Product authenticity & distribution intelligence
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="api-status">
+
+        <span class="status-dot"></span>
+
+        <span>
+            API Online
+        </span>
+
+    </div>
+
+</header>
+
+
+
+<main class="container">
+
+
+    <!-- Suspicious Activity Alert -->
+
+    <section
+        id="alert-banner"
+        class="alert-banner hidden"
+    >
+
+        <div class="alert-icon">
+            ⚠️
+        </div>
+
+        <div class="alert-content">
+
+            <strong id="alert-title">
+                Suspicious activity detected
+            </strong>
+
+            <p id="alert-description">
+                An anomaly has been detected.
+            </p>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Investigation Review -->
+
+    <section
+        id="investigation-panel"
+        class="panel investigation-panel hidden"
+    >
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Investigation Review
+                </h2>
+
+                <p>
+                    Review the details of the selected
+                    suspicious scan event.
+                </p>
+
+            </div>
+
+
+            <button
+                id="close-investigation"
+                class="secondary-button"
+                type="button"
+            >
+                Close Review
+            </button>
+
+        </div>
+
+
+        <div
+            id="investigation-content"
+            class="investigation-content"
+        >
+        </div>
+
+    </section>
+
+
+
+    <!-- Page Heading -->
+
+    <section class="page-heading">
+
+        <div>
+
+            <h2>
+                TrustTrace Dashboard
+            </h2>
+
+            <p>
+                Monitor product scans, detect distribution
+                anomalies, and review suspicious activity.
+            </p>
+
+        </div>
+
+
+        <button
+            id="refresh-btn"
+            class="secondary-button"
+            type="button"
+        >
+            ↻ Refresh Dashboard
+        </button>
+
+    </section>
+
+
+
+    <!-- Summary Statistics -->
+
+    <section class="summary-grid">
+
+
+        <div class="card stat-card">
+
+            <div class="stat-label">
+                Total Scans
+            </div>
+
+            <div
+                id="total-scans"
+                class="stat-number"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                All recorded product scans
+            </div>
+
+        </div>
+
+
+
+        <div class="card stat-card flagged-card">
+
+            <div class="stat-label">
+                Flagged Scans
+            </div>
+
+            <div
+                id="flagged-scans"
+                class="stat-number"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Scans requiring investigation
+            </div>
+
+        </div>
+
+
+
+        <div class="card stat-card safe-card">
+
+            <div class="stat-label">
+                Safe Scans
+            </div>
+
+            <div
+                id="safe-scans"
+                class="stat-number"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Scans with no detected anomaly
+            </div>
+
+        </div>
+
+
+
+        <div class="card stat-card">
+
+            <div class="stat-label">
+                Registered Products
+            </div>
+
+            <div
+                id="total-products"
+                class="stat-number"
+            >
+                0
+            </div>
+
+            <div class="stat-description">
+                Products currently registered
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Detection Intelligence -->
+
+    <section class="panel intelligence-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Detection Intelligence
+                </h2>
+
+                <p>
+                    TrustTrace monitors product scans for
+                    distribution anomalies.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="detection-grid">
+
+
+            <div class="detection-item">
+
+                <div class="detection-icon">
+                    🚨
+                </div>
+
+                <div>
+
+                    <strong>
+                        Impossible Travel
+                    </strong>
+
+                    <span>
+                        Detects unrealistic movement between
+                        scan locations.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="detection-item">
+
+                <div class="detection-icon">
+                    ⚡
+                </div>
+
+                <div>
+
+                    <strong>
+                        High Frequency
+                    </strong>
+
+                    <span>
+                        Detects excessive scans within
+                        a short period.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="detection-item">
+
+                <div class="detection-icon">
+                    🔐
+                </div>
+
+                <div>
+
+                    <strong>
+                        Code Validation
+                    </strong>
+
+                    <span>
+                        Checks whether product codes follow
+                        the TrustTrace format.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="detection-item">
+
+                <div class="detection-icon">
+                    🛡️
+                </div>
+
+                <div>
+
+                    <strong>
+                        Human Review
+                    </strong>
+
+                    <span>
+                        Flagged events are surfaced
+                        for investigation.
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Operator Actions -->
+
+    <section class="actions-grid">
+
+
+        <!-- Register Product -->
+
+        <div class="panel action-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h2>
+                        Register Product
+                    </h2>
+
+                    <p>
+                        Add a product and associate it
+                        with a production batch.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="product-form">
+
+
+                <div class="form-group">
+
+                    <label for="product-code">
+                        Product Code
+                    </label>
+
+                    <input
+                        type="text"
+                        id="product-code"
+                        name="product-code"
+                        placeholder="TT-ABC123"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="product-name">
+                        Product Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="product-name"
+                        name="product-name"
+                        placeholder="TrustTrace Demo Product"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="batch-id">
+                        Batch ID
+                    </label>
+
+                    <input
+                        type="text"
+                        id="batch-id"
+                        name="batch-id"
+                        placeholder="BATCH-001"
+                        required
+                    >
+
+                </div>
+
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Register Product
+                </button>
+
+
+                <div
+                    id="product-message"
+                    class="form-message"
+                ></div>
+
+            </form>
+
+        </div>
+
+
+
+        <!-- Submit Scan -->
+
+        <div class="panel action-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h2>
+                        Submit Product Scan
+                    </h2>
+
+                    <p>
+                        Record a product scan and run
+                        TrustTrace detection rules.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form id="scan-form">
+
+
+                <div class="form-group">
+
+                    <label for="scan-code">
+                        Product Code
+                    </label>
+
+                    <input
+                        type="text"
+                        id="scan-code"
+                        name="scan-code"
+                        placeholder="TT-ABC123"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="scan-timestamp">
+                        Scan Timestamp
+                    </label>
+
+                    <input
+                        type="datetime-local"
+                        id="scan-timestamp"
+                        name="scan-timestamp"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-row">
+
+
+                    <div class="form-group">
+
+                        <label for="latitude">
+                            Latitude
+                        </label>
+
+                        <input
+                            type="number"
+                            id="latitude"
+                            name="latitude"
+                            step="any"
+                            placeholder="6.5244"
+                            required
+                        >
+
+                    </div>
+
+
+
+                    <div class="form-group">
+
+                        <label for="longitude">
+                            Longitude
+                        </label>
+
+                        <input
+                            type="number"
+                            id="longitude"
+                            name="longitude"
+                            step="any"
+                            placeholder="3.3792"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Submit Scan
+                </button>
+
+
+                <div
+                    id="scan-message"
+                    class="form-message"
+                ></div>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Flagged Scans -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Flagged Scans
+                </h2>
+
+                <p>
+                    Suspicious activity detected by
+                    TrustTrace rules and requiring review.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            ID
+                        </th>
+
+                        <th>
+                            Product Code
+                        </th>
+
+                        <th>
+                            Timestamp
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Risk
+                        </th>
+
+                        <th>
+                            Review Status
+                        </th>
+
+                        <th>
+                            Review
+                        </th>
+
+                        <th>
+                            Detection Reason
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="flags-table-body">
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="loading"
+                        >
+                            Loading flagged scans...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Registered Products -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Registered Products
+                </h2>
+
+                <p>
+                    Products currently registered
+                    in the TrustTrace system.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Product Code
+                        </th>
+
+                        <th>
+                            Product Name
+                        </th>
+
+                        <th>
+                            Batch ID
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="products-table-body">
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+                            class="loading"
+                        >
+                            Loading registered products...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- All Scan Events -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    All Scan Events
+                </h2>
+
+                <p>
+                    Complete history of recorded
+                    product scans.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            ID
+                        </th>
+
+                        <th>
+                            Product Code
+                        </th>
+
+                        <th>
+                            Timestamp
+                        </th>
+
+                        <th>
+                            Location
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Detection Reason
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="scans-table-body">
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="loading"
+                        >
+                            Loading scan events...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+
+<!-- Footer -->
+
+<footer class="footer">
+
+    <p>
+        TrustTrace —
+        AI-powered counterfeit and distribution
+        fraud detection system
+    </p>
+
+    <p>
+        Rule-based anomaly detection •
+        Product traceability •
+        Human review
+    </p>
+
+</footer>
+
+
+
+<!-- Dashboard JavaScript -->
+
+<script
+    src="/static/js/dashboard.js?v=3"
+></script>
+```
+
+</body>
+
+</html>
