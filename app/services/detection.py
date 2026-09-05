@@ -1,5 +1,5 @@
 from math import radians, sin, cos, sqrt, atan2
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 
 from sqlalchemy.orm import Session
@@ -31,15 +31,21 @@ def calculate_distance_km(
 
     lat1 = radians(latitude1)
     lat2 = radians(latitude2)
+
     delta_lat = radians(latitude2 - latitude1)
     delta_lon = radians(longitude2 - longitude1)
 
     a = (
         sin(delta_lat / 2) ** 2
-        + cos(lat1) * cos(lat2) * sin(delta_lon / 2) ** 2
+        + cos(lat1)
+        * cos(lat2)
+        * sin(delta_lon / 2) ** 2
     )
 
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    c = 2 * atan2(
+        sqrt(a),
+        sqrt(1 - a)
+    )
 
     return earth_radius_km * c
 
@@ -52,6 +58,16 @@ def check_impossible_travel(
     longitude: float
 ) -> str | None:
     """Check whether a product moved an unrealistic distance too quickly."""
+
+    # Normalize incoming timestamp to UTC-aware datetime.
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(
+            tzinfo=timezone.utc
+        )
+    else:
+        timestamp = timestamp.astimezone(
+            timezone.utc
+        )
 
     previous_scan = (
         db.query(ScanEvent)
@@ -66,8 +82,25 @@ def check_impossible_travel(
     if not previous_scan:
         return None
 
-    time_difference = timestamp - previous_scan.timestamp
-    time_difference_minutes = time_difference.total_seconds() / 60
+    # Normalize stored timestamp to UTC-aware datetime.
+    previous_timestamp = previous_scan.timestamp
+
+    if previous_timestamp.tzinfo is None:
+        previous_timestamp = previous_timestamp.replace(
+            tzinfo=timezone.utc
+        )
+    else:
+        previous_timestamp = previous_timestamp.astimezone(
+            timezone.utc
+        )
+
+    time_difference = (
+        timestamp - previous_timestamp
+    )
+
+    time_difference_minutes = (
+        time_difference.total_seconds() / 60
+    )
 
     distance_km = calculate_distance_km(
         previous_scan.latitude,
@@ -95,6 +128,16 @@ def check_high_frequency(
     timestamp: datetime
 ) -> str | None:
     """Check whether a product code has been scanned too frequently."""
+
+    # Normalize timestamp to UTC-aware datetime.
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(
+            tzinfo=timezone.utc
+        )
+    else:
+        timestamp = timestamp.astimezone(
+            timezone.utc
+        )
 
     window_start = timestamp - timedelta(
         minutes=HIGH_FREQUENCY_WINDOW_MINUTES
@@ -125,7 +168,10 @@ def check_high_frequency(
 def check_code_format(code: str) -> str | None:
     """Check whether a product code follows the TrustTrace format."""
 
-    if not re.fullmatch(PRODUCT_CODE_PATTERN, code):
+    if not re.fullmatch(
+        PRODUCT_CODE_PATTERN,
+        code
+    ):
         return (
             f"Invalid product code format: '{code}'. "
             "Expected format TT-ABC123"

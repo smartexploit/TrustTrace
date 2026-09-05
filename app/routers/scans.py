@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -67,7 +67,11 @@ def log_scan(
     if high_frequency_reason:
         flag_reasons.append(high_frequency_reason)
 
-    flag_reason = "; ".join(flag_reasons) if flag_reasons else None
+    flag_reason = (
+        "; ".join(flag_reasons)
+        if flag_reasons
+        else None
+    )
 
     scan_event = ScanEvent(
         code=scan.code,
@@ -76,7 +80,11 @@ def log_scan(
         longitude=scan.longitude,
         flagged=bool(flag_reasons),
         flag_reason=flag_reason,
-        review_status="PENDING" if flag_reasons else "REVIEWED"
+        review_status=(
+            "PENDING"
+            if flag_reasons
+            else "REVIEWED"
+        )
     )
 
     db.add(scan_event)
@@ -141,7 +149,7 @@ def review_scan(
 
     scan_event.review_status = review.review_status
     scan_event.review_note = review.review_note
-    scan_event.reviewed_at = datetime.utcnow()
+    scan_event.reviewed_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(scan_event)
