@@ -12,6 +12,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      TRUSTTRACE_SECRET_KEY: ci-test-secret-not-used-in-production
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
