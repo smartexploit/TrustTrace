@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>TrustTrace | Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(212, 175, 55, 0.12), transparent 35%),
+                radial-gradient(circle at bottom left, rgba(212, 175, 55, 0.08), transparent 35%),
+                #050505;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 430px;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .brand-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            border: 2px solid #d4af37;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d4af37;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.12);
+        }
+
+        .brand h1 {
+            color: #d4af37;
+            font-size: 32px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .brand p {
+            color: #999999;
+            font-size: 14px;
+        }
+
+        .login-card {
+            background: #101010;
+            border: 1px solid #292929;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        }
+
+        .login-card h2 {
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .login-card .subtitle {
+            color: #888888;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #dddddd;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px 14px;
+            background: #080808;
+            color: #ffffff;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus {
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
+        }
+
+        input::placeholder {
+            color: #666666;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 70px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999999;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 6px;
+        }
+
+        .toggle-password:hover {
+            color: #d4af37;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 6px;
+            background: #d4af37;
+            color: #050505;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .login-button:hover {
+            background: #e5c04b;
+            transform: translateY(-1px);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            background: rgba(239, 68, 68, 0.10);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 8px;
+            color: #ef4444;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            display: none;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            background: rgba(34, 197, 94, 0.10);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            border-radius: 8px;
+            color: #22c55e;
+            font-size: 13px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 22px;
+            color: #666666;
+            font-size: 12px;
+        }
+
+        .security-note {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #252525;
+            text-align: center;
+            color: #777777;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px;
+            }
+
+            .login-card {
+                padding: 24px;
+            }
+
+            .brand h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-container">
+
+        <div class="brand">
+            <div class="brand-icon">T</div>
+            <h1>TrustTrace</h1>
+            <p>Product Authenticity &amp; Fraud Intelligence</p>
+        </div>
+
+        <section class="login-card">
+
+            <h2>Welcome back</h2>
+            <p class="subtitle">
+                Sign in to access the TrustTrace dashboard.
+            </p>
+
+            <div id="error-message" class="error-message"></div>
+
+            <div id="success-message" class="success-message">
+                Login successful. Redirecting...
+            </div>
+
+            <form id="login-form">
+
+                <div class="form-group">
+                    <label for="email">Email address</label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+
+                    <div class="password-wrapper">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            id="toggle-password"
+                            class="toggle-password"
+                        >
+                            Show
+                        </button>
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    id="login-button"
+                    class="login-button"
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="security-note">
+                🔒 Secure authentication powered by TrustTrace
+            </div>
+
+        </section>
+
+        <div class="footer">
+            TrustTrace &copy; 2026
+        </div>
+
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+
+    <script>
+        const loginForm = document.getElementById("login-form");
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+        const loginButton = document.getElementById("login-button");
+        const errorMessage = document.getElementById("error-message");
+        const successMessage = document.getElementById("success-message");
+        const togglePassword = document.getElementById("toggle-password");
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add("show");
+            successMessage.classList.remove("show");
+        }
+
+        function clearMessages() {
+            errorMessage.textContent = "";
+            errorMessage.classList.remove("show");
+            successMessage.classList.remove("show");
+        }
+
+        togglePassword.addEventListener("click", () => {
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                togglePassword.textContent = "Hide";
+            } else {
+                passwordInput.type = "password";
+                togglePassword.textContent = "Show";
+            }
+        });
+
+        loginForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            clearMessages();
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showError("Please enter your email and password.");
+                return;
+            }
+
+            loginButton.disabled = true;
+            loginButton.textContent = "Signing in...";
+
+            try {
+                const response = await fetch("/auth/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                let data = {};
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = {};
+                }
+
+                if (!response.ok) {
+                    showError(
+                        data.detail ||
+                        "Login failed. Please check your email and password."
+                    );
+
+                    loginButton.disabled = false;
+                    loginButton.textContent = "Sign In";
+                    return;
+                }
+
+                if (!data.access_token) {
+                    showError("Login succeeded but no authentication token was returned.");
+
+                    loginButton.disabled = false;
+                    loginButton.textContent = "Sign In";
+                    return;
+                }
+
+                saveToken(data.access_token);
+
+                const user = await loadCurrentUser();
+
+                if (!user) {
+                    removeToken();
+
+                    showError(
+                        "Authentication succeeded, but your user account could not be verified."
+                    );
+
+                    loginButton.disabled = false;
+                    loginButton.textContent = "Sign In";
+                    return;
+                }
+
+                successMessage.classList.add("show");
+                loginButton.textContent = "Success";
+
+                setTimeout(() => {
+                    window.location.href = "/";
+                }, 700);
+
+            } catch (error) {
+                console.error("Login error:", error);
+
+                showError(
+                    "Unable to connect to the TrustTrace server. Make sure Uvicorn is running."
+                );
+
+                loginButton.disabled = false;
+                loginButton.textContent = "Sign In";
+            }
+        });
+    </script>
+
+</body>
+</html>

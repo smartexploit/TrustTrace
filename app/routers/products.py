@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import require_roles
 from app.database import get_db
 from app.models.product import Product
 from app.schemas import ProductCreate, ProductResponse
@@ -18,7 +19,13 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=ProductResponse)
+@router.post(
+    "/",
+    response_model=ProductResponse,
+    dependencies=[
+        Depends(require_roles("super_admin", "brand_admin"))
+    ]
+)
 def register_product(
     product: ProductCreate,
     db: Session = Depends(get_db)
@@ -46,7 +53,18 @@ def register_product(
     return new_product
 
 
-@router.get("/", response_model=List[ProductResponse])
+@router.get(
+    "/",
+    response_model=List[ProductResponse],
+    dependencies=[
+        Depends(require_roles(
+            "super_admin",
+            "brand_admin",
+            "investigator",
+            "staff"
+        ))
+    ]
+)
 def get_products(
     db: Session = Depends(get_db)
 ):
@@ -57,7 +75,12 @@ def get_products(
     )
 
 
-@router.get("/{code}/qr")
+@router.get(
+    "/{code}/qr",
+    dependencies=[
+        Depends(require_roles("super_admin", "brand_admin"))
+    ]
+)
 def generate_product_qr(
     code: str,
     request: Request,
@@ -83,12 +106,20 @@ def generate_product_qr(
         box_size=10,
         border=4
     )
+
     qr.add_data(verification_url)
     qr.make(fit=True)
 
-    image = qr.make_image(fill_color="black", back_color="white")
+    image = qr.make_image(
+        fill_color="black",
+        back_color="white"
+    )
+
     image_buffer = BytesIO()
-    image.save(image_buffer, format="PNG")
+    image.save(
+        image_buffer,
+        format="PNG"
+    )
     image_buffer.seek(0)
 
     return StreamingResponse(

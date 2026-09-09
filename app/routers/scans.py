@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import require_roles
 from app.database import get_db
 from app.models.product import Product
 from app.models.scan_event import ScanEvent
@@ -25,7 +26,17 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=ScanResponse)
+@router.post(
+    "/",
+    response_model=ScanResponse,
+    dependencies=[
+        Depends(require_roles(
+            "super_admin",
+            "brand_admin",
+            "staff"
+        ))
+    ]
+)
 def log_scan(
     scan: ScanCreate,
     db: Session = Depends(get_db)
@@ -94,7 +105,18 @@ def log_scan(
     return scan_event
 
 
-@router.get("/", response_model=List[ScanResponse])
+@router.get(
+    "/",
+    response_model=List[ScanResponse],
+    dependencies=[
+        Depends(require_roles(
+            "super_admin",
+            "brand_admin",
+            "investigator",
+            "staff"
+        ))
+    ]
+)
 def get_scans(
     db: Session = Depends(get_db)
 ):
@@ -105,7 +127,17 @@ def get_scans(
     )
 
 
-@router.get("/flags", response_model=List[ScanResponse])
+@router.get(
+    "/flags",
+    response_model=List[ScanResponse],
+    dependencies=[
+        Depends(require_roles(
+            "super_admin",
+            "brand_admin",
+            "investigator"
+        ))
+    ]
+)
 def get_flagged_scans(
     db: Session = Depends(get_db)
 ):
@@ -119,7 +151,13 @@ def get_flagged_scans(
 
 @router.patch(
     "/{scan_id}/review",
-    response_model=ScanResponse
+    response_model=ScanResponse,
+    dependencies=[
+        Depends(require_roles(
+            "super_admin",
+            "investigator"
+        ))
+    ]
 )
 def review_scan(
     scan_id: int,

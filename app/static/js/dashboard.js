@@ -1,194 +1,551 @@
-﻿const API_BASE = "";
+const API_BASE = "";
+
+const TOKEN_KEY = "trusttrace_token";
+const USER_KEY = "trusttrace_user";
 
 let products = [];
 let scans = [];
 let flags = [];
+let users = [];
+let currentUser = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-    loadDashboard();
 
-    const refreshButton = document.getElementById("refresh-btn");
+/* =========================
+   AUTHENTICATION
+========================= */
 
-    if (refreshButton) {
-        refreshButton.addEventListener("click", loadDashboard);
+function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+
+function saveUser(user) {
+    localStorage.setItem(
+        USER_KEY,
+        JSON.stringify(user)
+    );
+}
+
+
+function getStoredUser() {
+    const user = localStorage.getItem(USER_KEY);
+
+    if (!user) {
+        return null;
     }
 
-    const productForm = document.getElementById("product-form");
+    try {
+        return JSON.parse(user);
+    } catch {
+        return null;
+    }
+}
 
-    if (productForm) {
-        productForm.addEventListener("submit", handleProductSubmit);
+
+function clearAuthentication() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+}
+
+
+function isAuthenticated() {
+    return Boolean(getToken());
+}
+
+
+function hasRole(...roles) {
+    if (!currentUser) {
+        return false;
     }
 
-    const scanForm = document.getElementById("scan-form");
+    return roles.includes(currentUser.role);
+}
 
-    if (scanForm) {
-        scanForm.addEventListener("submit", handleScanSubmit);
+
+function authHeaders(extraHeaders = {}) {
+    const token = getToken();
+
+    return {
+        ...extraHeaders,
+        Authorization: `Bearer ${token}`
+    };
+}
+
+
+async function loadCurrentUser() {
+    const token = getToken();
+
+    if (!token) {
+        return null;
     }
 
-    const closeButton = document.getElementById("close-investigation");
+    try {
+        const response = await fetch(
+            `${API_BASE}/auth/me`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
 
-    if (closeButton) {
-        closeButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            event.stopPropagation();
+        if (!response.ok) {
+            clearAuthentication();
+            return null;
+        }
 
-            closeInvestigation();
-        });
+        const user = await response.json();
+
+        currentUser = user;
+        saveUser(user);
+
+        return user;
+
+    } catch (error) {
+        console.error(
+            "Error loading current user:",
+            error
+        );
+
+        clearAuthentication();
+
+        return null;
     }
+}
 
-    document.addEventListener("click", (event) => {
-        const target = event.target;
 
-        if (!target) {
+function handleUnauthorized() {
+    clearAuthentication();
+
+    window.location.href = "/login";
+}
+
+
+function logout() {
+    clearAuthentication();
+
+    window.location.href = "/login";
+}
+
+
+/* =========================
+   INITIALIZATION
+========================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        const user = await loadCurrentUser();
+
+        if (!user) {
+            showLoginRequired();
             return;
         }
 
-        const reviewButton = target.closest(".review-button");
+        currentUser = user;
 
-        if (reviewButton) {
-            const scanId = reviewButton.dataset.scanId;
+        displayCurrentUser();
 
-            if (scanId) {
-                openInvestigation(Number(scanId));
-            }
-        }
-    });
-});
+        applyRolePermissions();
 
+        await loadDashboard();
 
-async function loadDashboard() {
-    await Promise.all([
-        loadProducts(),
-        loadScans(),
-        loadFlags()
-    ]);
-
-    updateSummary();
-    updateApiStatus();
-}
-
-
-async function loadProducts() {
-    try {
-        const response = await fetch(`${API_BASE}/products/`);
-
-        if (!response.ok) {
-            throw new Error("Failed to load products");
-        }
-
-        products = await response.json();
-
-        renderProducts();
-
-    } catch (error) {
-        console.error("Error loading products:", error);
+        attachEventListeners();
     }
-}
+);
 
 
-async function loadScans() {
-    try {
-        const response = await fetch(`${API_BASE}/scan/`);
+/* =========================
+   LOGIN REQUIREMENT
+========================= */
 
-        if (!response.ok) {
-            throw new Error("Failed to load scans");
-        }
+function showLoginRequired() {
 
-        scans = await response.json();
+    const container =
+        document.querySelector(".container");
 
-        renderScans();
-
-    } catch (error) {
-        console.error("Error loading scans:", error);
-    }
-}
-
-
-async function loadFlags() {
-    try {
-        const response = await fetch(`${API_BASE}/scan/flags`);
-
-        if (!response.ok) {
-            throw new Error("Failed to load flagged scans");
-        }
-
-        flags = await response.json();
-
-        console.log("Flagged scans received:", flags);
-
-        renderFlags();
-
-    } catch (error) {
-        console.error("Error loading flagged scans:", error);
-    }
-}
-
-
-function updateSummary() {
-    const totalScansElement =
-        document.getElementById("total-scans");
-
-    const flaggedScansElement =
-        document.getElementById("flagged-scans");
-
-    const safeScansElement =
-        document.getElementById("safe-scans");
-
-    const totalProductsElement =
-        document.getElementById("total-products");
-
-    const totalScanCount = scans.length;
-
-    const flaggedScanCount = scans.filter(
-        (scan) => scan.flagged === true
-    ).length;
-
-    const safeScanCount =
-        totalScanCount - flaggedScanCount;
-
-    if (totalScansElement) {
-        totalScansElement.textContent =
-            totalScanCount;
-    }
-
-    if (flaggedScansElement) {
-        flaggedScansElement.textContent =
-            flaggedScanCount;
-    }
-
-    if (safeScansElement) {
-        safeScansElement.textContent =
-            safeScanCount;
-    }
-
-    if (totalProductsElement) {
-        totalProductsElement.textContent =
-            products.length;
-    }
-}
-
-
-function updateApiStatus() {
-    const apiStatus =
-        document.querySelector(".api-status");
-
-    if (!apiStatus) {
+    if (!container) {
         return;
     }
 
-    apiStatus.innerHTML = `
-        <span class="status-dot"></span>
-        <span>API Online</span>
-    `;
+    container.innerHTML = `
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>
+                        Authentication Required
+                    </h2>
 
-    apiStatus.classList.remove("offline");
-    apiStatus.classList.add("online");
+                    <p>
+                        Please log in to access
+                        the TrustTrace dashboard.
+                    </p>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="primary-button"
+                onclick="window.location.href='/login'"
+            >
+                Go to Login
+            </button>
+        </section>
+    `;
+}
+
+
+/* =========================
+   USER DISPLAY
+========================= */
+
+function displayCurrentUser() {
+
+    const emailElements =
+        document.querySelectorAll(
+            "[data-user-email]"
+        );
+
+    const roleElements =
+        document.querySelectorAll(
+            "[data-user-role]"
+        );
+
+    emailElements.forEach(
+        (element) => {
+            element.textContent =
+                currentUser?.email ||
+                "Unknown";
+        }
+    );
+
+    roleElements.forEach(
+        (element) => {
+            element.textContent =
+                formatRole(
+                    currentUser?.role
+                );
+        }
+    );
+}
+
+
+function formatRole(role) {
+
+    if (!role) {
+        return "Unknown";
+    }
+
+    const roleNames = {
+        super_admin: "Super Admin",
+        brand_admin: "Brand Admin",
+        investigator: "Investigator",
+        staff: "Staff"
+    };
+
+    return (
+        roleNames[role] ||
+        role
+    );
+}
+
+
+/* =========================
+   ROLE PERMISSIONS
+========================= */
+
+function applyRolePermissions() {
+
+    const userManagement =
+        document.getElementById(
+            "user-management"
+        );
+
+    const productForm =
+        document.getElementById(
+            "product-form"
+        );
+
+    const productManagement =
+        document.getElementById(
+            "product-management"
+        );
+
+    const flagsSection =
+        document.getElementById(
+            "flags-section"
+        );
+
+    if (userManagement) {
+
+        if (hasRole("super_admin")) {
+
+            userManagement.classList.remove(
+                "hidden"
+            );
+
+            userManagement.style.display =
+                "block";
+
+        } else {
+
+            userManagement.classList.add(
+                "hidden"
+            );
+
+            userManagement.style.display =
+                "none";
+        }
+    }
+
+
+    if (productManagement) {
+
+        if (
+            hasRole(
+                "super_admin",
+                "brand_admin"
+            )
+        ) {
+
+            productManagement.classList.remove(
+                "hidden"
+            );
+
+            productManagement.style.display =
+                "block";
+
+        } else {
+
+            productManagement.classList.add(
+                "hidden"
+            );
+
+            productManagement.style.display =
+                "none";
+        }
+    }
+
+
+    if (productForm) {
+
+        if (
+            hasRole(
+                "super_admin",
+                "brand_admin"
+            )
+        ) {
+            productForm.style.display =
+                "block";
+        } else {
+            productForm.style.display =
+                "none";
+        }
+    }
+
+
+    if (flagsSection) {
+
+        if (
+            hasRole(
+                "super_admin",
+                "brand_admin",
+                "investigator"
+            )
+        ) {
+
+            flagsSection.classList.remove(
+                "hidden"
+            );
+
+            flagsSection.style.display =
+                "block";
+
+        } else {
+
+            flagsSection.classList.add(
+                "hidden"
+            );
+
+            flagsSection.style.display =
+                "none";
+        }
+    }
+}
+
+
+/* =========================
+   EVENT LISTENERS
+========================= */
+
+function attachEventListeners() {
+
+    const refreshButton =
+        document.getElementById(
+            "refresh-btn"
+        );
+
+    if (refreshButton) {
+
+        refreshButton.addEventListener(
+            "click",
+            loadDashboard
+        );
+    }
+
+
+    const logoutButton =
+        document.getElementById(
+            "logout-btn"
+        );
+
+    if (logoutButton) {
+
+        logoutButton.addEventListener(
+            "click",
+            logout
+        );
+    }
+
+
+    const productForm =
+        document.getElementById(
+            "product-form"
+        );
+
+    if (productForm) {
+
+        productForm.addEventListener(
+            "submit",
+            handleProductSubmit
+        );
+    }
+
+
+    const scanForm =
+        document.getElementById(
+            "scan-form"
+        );
+
+    if (scanForm) {
+
+        scanForm.addEventListener(
+            "submit",
+            handleScanSubmit
+        );
+    }
+
+
+    const userForm =
+        document.getElementById(
+            "user-form"
+        );
+
+    if (userForm) {
+
+        userForm.addEventListener(
+            "submit",
+            handleUserSubmit
+        );
+    }
+
+
+    const closeInvestigationButton =
+        document.getElementById(
+            "close-investigation"
+        );
+
+    if (closeInvestigationButton) {
+
+        closeInvestigationButton.addEventListener(
+            "click",
+            closeInvestigation
+        );
+    }
+}
+
+
+/* =========================
+   DASHBOARD
+========================= */
+
+async function loadDashboard() {
+
+    if (!isAuthenticated()) {
+        handleUnauthorized();
+        return;
+    }
+
+    try {
+
+        await Promise.all([
+            loadProducts(),
+            loadScans(),
+            loadFlags()
+        ]);
+
+        updateSummary();
+        renderProducts();
+        renderScans();
+        renderFlags();
+
+        updateAlertBanner(
+            flags.length > 0
+        );
+
+        if (hasRole("super_admin")) {
+            await loadUsers();
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Error loading dashboard:",
+            error
+        );
+    }
+}
+
+
+/* =========================
+   PRODUCTS
+========================= */
+
+async function loadProducts() {
+
+    const response =
+        await fetch(
+            `${API_BASE}/products/`,
+            {
+                headers:
+                    authHeaders()
+            }
+        );
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Failed to load products"
+        );
+    }
+
+    products =
+        await response.json();
 }
 
 
 function renderProducts() {
+
     const tableBody =
-        document.getElementById("products-table-body");
+        document.getElementById(
+            "products-table-body"
+        );
 
     if (!tableBody) {
         return;
@@ -196,11 +553,15 @@ function renderProducts() {
 
     tableBody.innerHTML = "";
 
-    if (products.length === 0) {
+    if (!products.length) {
+
         tableBody.innerHTML = `
             <tr>
-                <td colspan="3" class="empty-state">
-                    No registered products found.
+                <td
+                    colspan="3"
+                    class="loading"
+                >
+                    No registered products.
                 </td>
             </tr>
         `;
@@ -208,78 +569,80 @@ function renderProducts() {
         return;
     }
 
-    products.forEach((product) => {
-        const row =
-            document.createElement("tr");
+    products.forEach(
+        (product) => {
 
-        const code =
-            encodeURIComponent(product.code);
+            const row =
+                document.createElement(
+                    "tr"
+                );
 
-        const qrUrl =
-            `${API_BASE}/products/${code}/qr`;
+            row.innerHTML = `
+                <td>
+                    ${escapeHtml(
+                        product.code
+                    )}
+                </td>
 
-        row.innerHTML = `
-            <td>
-                ${escapeHtml(product.code)}
+                <td>
+                    ${escapeHtml(
+                        product.product_name
+                    )}
+                </td>
 
-                <div
-                    style="
-                        margin-top: 8px;
-                        display: flex;
-                        gap: 6px;
-                        flex-wrap: wrap;
-                    "
-                >
-                    <a
-                        href="${qrUrl}"
-                        target="_blank"
-                        rel="noopener"
-                        class="secondary-button"
-                        style="
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            text-decoration: none;
-                        "
-                    >
-                        View QR
-                    </a>
+                <td>
+                    ${escapeHtml(
+                        product.batch_id
+                    )}
+                </td>
+            `;
 
-                    <a
-                        href="${qrUrl}"
-                        download="${escapeHtml(
-                            product.code
-                        )}-trusttrace-qr.png"
-                        class="secondary-button"
-                        style="
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            text-decoration: none;
-                        "
-                    >
-                        Download QR
-                    </a>
-                </div>
-            </td>
+            tableBody.appendChild(
+                row
+            );
+        }
+    );
+}
 
-            <td>
-                ${escapeHtml(product.product_name)}
-            </td>
 
-            <td>
-                ${escapeHtml(product.batch_id)}
-            </td>
-        `;
+/* =========================
+   SCANS
+========================= */
 
-        tableBody.appendChild(row);
-    });
+async function loadScans() {
+
+    const response =
+        await fetch(
+            `${API_BASE}/scan/`,
+            {
+                headers:
+                    authHeaders()
+            }
+        );
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Failed to load scans"
+        );
+    }
+
+    scans =
+        await response.json();
 }
 
 
 function renderScans() {
+
     const tableBody =
-        document.getElementById("scans-table-body");
+        document.getElementById(
+            "scans-table-body"
+        );
 
     if (!tableBody) {
         return;
@@ -287,11 +650,15 @@ function renderScans() {
 
     tableBody.innerHTML = "";
 
-    if (scans.length === 0) {
+    if (!scans.length) {
+
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="empty-state">
-                    No scan events found.
+                <td
+                    colspan="6"
+                    class="loading"
+                >
+                    No scan events recorded.
                 </td>
             </tr>
         `;
@@ -299,69 +666,114 @@ function renderScans() {
         return;
     }
 
-    scans.forEach((scan) => {
-        const row =
-            document.createElement("tr");
+    scans.forEach(
+        (scan) => {
 
-        const statusClass =
-            scan.flagged
-                ? "status-flagged"
-                : "status-safe";
+            const row =
+                document.createElement(
+                    "tr"
+                );
 
-        const statusText =
-            scan.flagged
-                ? "Flagged"
-                : "Safe";
+            const flagged =
+                Boolean(scan.flagged);
 
-        row.innerHTML = `
-            <td>
-                ${scan.id}
-            </td>
+            row.innerHTML = `
+                <td>
+                    ${scan.id}
+                </td>
 
-            <td>
-                ${escapeHtml(scan.code)}
-            </td>
+                <td>
+                    ${escapeHtml(
+                        scan.code
+                    )}
+                </td>
 
-            <td>
-                ${formatDate(scan.timestamp)}
-            </td>
+                <td>
+                    ${formatDate(
+                        scan.timestamp
+                    )}
+                </td>
 
-            <td>
-                ${formatLocation(
-                    scan.latitude,
-                    scan.longitude
-                )}
-            </td>
+                <td>
+                    ${formatLocation(
+                        scan.latitude,
+                        scan.longitude
+                    )}
+                </td>
 
-            <td>
-                <span
-                    class="status-badge ${
-                        scan.flagged
-                            ? "flagged"
-                            : "safe"
-                    }"
-                >
-                    ${statusText}
-                </span>
-            </td>
+                <td>
+                    <span
+                        class="status-badge ${
+                            flagged
+                                ? "flagged"
+                                : "safe"
+                        }"
+                    >
+                        ${
+                            flagged
+                                ? "Flagged"
+                                : "Safe"
+                        }
+                    </span>
+                </td>
 
-            <td class="${statusClass}">
-                ${
-                    scan.flag_reason
-                        ? escapeHtml(scan.flag_reason)
-                        : "No anomaly detected"
-                }
-            </td>
-        `;
+                <td>
+                    ${
+                        scan.flag_reason
+                            ? escapeHtml(
+                                scan.flag_reason
+                            )
+                            : "No anomaly detected"
+                    }
+                </td>
+            `;
 
-        tableBody.appendChild(row);
-    });
+            tableBody.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+/* =========================
+   FLAGS
+========================= */
+
+async function loadFlags() {
+
+    const response =
+        await fetch(
+            `${API_BASE}/scan/flags`,
+            {
+                headers:
+                    authHeaders()
+            }
+        );
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Failed to load flagged scans"
+        );
+    }
+
+    flags =
+        await response.json();
 }
 
 
 function renderFlags() {
+
     const tableBody =
-        document.getElementById("flags-table-body");
+        document.getElementById(
+            "flags-table-body"
+        );
 
     if (!tableBody) {
         return;
@@ -369,121 +781,238 @@ function renderFlags() {
 
     tableBody.innerHTML = "";
 
-    if (flags.length === 0) {
+    if (!flags.length) {
+
         tableBody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-state">
+                <td
+                    colspan="9"
+                    class="loading"
+                >
                     No flagged scans found.
                 </td>
             </tr>
         `;
 
-        updateAlertBanner(false);
-
         return;
     }
 
-    updateAlertBanner(true);
+    flags.forEach(
+        (scan) => {
 
-    flags.forEach((scan) => {
-        const row =
-            document.createElement("tr");
+            const row =
+                document.createElement(
+                    "tr"
+                );
 
-        const reviewStatus =
-            scan.review_status || "PENDING";
+            const reviewStatus =
+                scan.review_status ||
+                "PENDING";
 
-        let reviewStatusClass =
-            "review-required";
+            let reviewStatusClass =
+                "review-required";
 
-        if (
-            reviewStatus === "REVIEWED" ||
-            reviewStatus === "DISMISSED"
-        ) {
-            reviewStatusClass =
-                "status-safe";
+            if (
+                reviewStatus === "REVIEWED" ||
+                reviewStatus === "DISMISSED"
+            ) {
+                reviewStatusClass =
+                    "status-safe";
+            }
+
+            const riskClass =
+                getRiskClass(scan);
+
+            const riskText =
+                getRiskText(scan);
+
+            const canReview =
+                hasRole(
+                    "super_admin",
+                    "investigator"
+                );
+
+            row.innerHTML = `
+                <td>
+                    ${scan.id}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        scan.code
+                    )}
+                </td>
+
+                <td>
+                    ${formatDate(
+                        scan.timestamp
+                    )}
+                </td>
+
+                <td>
+                    ${formatLocation(
+                        scan.latitude,
+                        scan.longitude
+                    )}
+                </td>
+
+                <td>
+                    <span
+                        class="status-badge flagged"
+                    >
+                        Flagged
+                    </span>
+                </td>
+
+                <td>
+                    <span
+                        class="status-badge ${riskClass}"
+                    >
+                        ${riskText}
+                    </span>
+                </td>
+
+                <td>
+                    <span
+                        class="${reviewStatusClass}"
+                    >
+                        ${escapeHtml(
+                            reviewStatus
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    ${
+                        canReview
+                            ? `
+                                <button
+                                    type="button"
+                                    class="review-button"
+                                    data-scan-id="${scan.id}"
+                                >
+                                    Review
+                                </button>
+                            `
+                            : "View only"
+                    }
+                </td>
+
+                <td class="review-reason">
+                    ${
+                        scan.flag_reason
+                            ? escapeHtml(
+                                scan.flag_reason
+                            )
+                            : "No detection reason"
+                    }
+                </td>
+            `;
+
+            tableBody.appendChild(
+                row
+            );
         }
+    );
 
-        const riskClass =
-            getRiskClass(scan);
 
-        const riskText =
-            getRiskText(scan);
+    document
+        .querySelectorAll(
+            ".review-button"
+        )
+        .forEach(
+            (button) => {
 
-        row.innerHTML = `
-            <td>
-                ${scan.id}
-            </td>
+                button.addEventListener(
+                    "click",
+                    () => {
 
-            <td>
-                ${escapeHtml(scan.code)}
-            </td>
+                        const scanId =
+                            button.dataset.scanId;
 
-            <td>
-                ${formatDate(scan.timestamp)}
-            </td>
-
-            <td>
-                ${formatLocation(
-                    scan.latitude,
-                    scan.longitude
-                )}
-            </td>
-
-            <td>
-                <span class="status-badge flagged">
-                    Flagged
-                </span>
-            </td>
-
-            <td>
-                <span
-                    class="status-badge ${riskClass}"
-                >
-                    ${riskText}
-                </span>
-            </td>
-
-            <td>
-                <span class="${reviewStatusClass}">
-                    ${escapeHtml(reviewStatus)}
-                </span>
-            </td>
-
-            <td>
-                <button
-                    type="button"
-                    class="review-button"
-                    data-scan-id="${scan.id}"
-                >
-                    Review
-                </button>
-            </td>
-
-            <td class="review-reason">
-                ${
-                    scan.flag_reason
-                        ? escapeHtml(
-                            scan.flag_reason
-                        )
-                        : "No detection reason"
-                }
-            </td>
-        `;
-
-        tableBody.appendChild(row);
-    });
+                        openInvestigation(
+                            scanId
+                        );
+                    }
+                );
+            }
+        );
 }
 
 
-function updateAlertBanner(hasFlags) {
+/* =========================
+   SUMMARY
+========================= */
+
+function updateSummary() {
+
+    const totalScans =
+        document.getElementById(
+            "total-scans"
+        );
+
+    const flaggedScans =
+        document.getElementById(
+            "flagged-scans"
+        );
+
+    const safeScans =
+        document.getElementById(
+            "safe-scans"
+        );
+
+    const totalProducts =
+        document.getElementById(
+            "total-products"
+        );
+
+    if (totalScans) {
+        totalScans.textContent =
+            scans.length;
+    }
+
+    if (flaggedScans) {
+        flaggedScans.textContent =
+            flags.length;
+    }
+
+    if (safeScans) {
+        safeScans.textContent =
+            Math.max(
+                scans.length - flags.length,
+                0
+            );
+    }
+
+    if (totalProducts) {
+        totalProducts.textContent =
+            products.length;
+    }
+}
+
+
+/* =========================
+   ALERT BANNER
+========================= */
+
+function updateAlertBanner(
+    hasFlags
+) {
+
     const banner =
-        document.getElementById("alert-banner");
+        document.getElementById(
+            "alert-banner"
+        );
 
     const title =
-        document.getElementById("alert-title");
+        document.getElementById(
+            "alert-title"
+        );
 
     const description =
-        document.getElementById("alert-description");
+        document.getElementById(
+            "alert-description"
+        );
 
     if (!banner) {
         return;
@@ -496,14 +1025,19 @@ function updateAlertBanner(hasFlags) {
     );
 
     if (hasFlags) {
-        banner.classList.add("alert-warning");
+
+        banner.classList.add(
+            "alert-warning"
+        );
 
         if (title) {
+
             title.textContent =
                 "Suspicious activity detected";
         }
 
         if (description) {
+
             description.textContent =
                 `${flags.length} flagged scan event${
                     flags.length === 1
@@ -513,14 +1047,19 @@ function updateAlertBanner(hasFlags) {
         }
 
     } else {
-        banner.classList.add("alert-safe");
+
+        banner.classList.add(
+            "alert-safe"
+        );
 
         if (title) {
+
             title.textContent =
                 "No suspicious activity detected";
         }
 
         if (description) {
+
             description.textContent =
                 "All recent scan events appear safe.";
         }
@@ -528,7 +1067,23 @@ function updateAlertBanner(hasFlags) {
 }
 
 
-function openInvestigation(scanId) {
+/* =========================
+   INVESTIGATION
+========================= */
+
+function openInvestigation(
+    scanId
+) {
+
+    if (
+        !hasRole(
+            "super_admin",
+            "investigator"
+        )
+    ) {
+        return;
+    }
+
     const panel =
         document.getElementById(
             "investigation-panel"
@@ -539,7 +1094,11 @@ function openInvestigation(scanId) {
             "investigation-content"
         );
 
-    if (!panel || !content) {
+    if (
+        !panel ||
+        !content
+    ) {
+
         console.error(
             "Investigation panel or content not found."
         );
@@ -555,6 +1114,7 @@ function openInvestigation(scanId) {
         );
 
     if (!scan) {
+
         console.error(
             "Could not find scan:",
             scanId
@@ -576,14 +1136,18 @@ function openInvestigation(scanId) {
             <div class="investigation-item">
                 <span>Product Code</span>
                 <strong>
-                    ${escapeHtml(scan.code)}
+                    ${escapeHtml(
+                        scan.code
+                    )}
                 </strong>
             </div>
 
             <div class="investigation-item">
                 <span>Timestamp</span>
                 <strong>
-                    ${formatDate(scan.timestamp)}
+                    ${formatDate(
+                        scan.timestamp
+                    )}
                 </strong>
             </div>
 
@@ -670,8 +1234,12 @@ function openInvestigation(scanId) {
         </div>
     `;
 
-    panel.classList.remove("hidden");
-    panel.style.display = "block";
+    panel.classList.remove(
+        "hidden"
+    );
+
+    panel.style.display =
+        "block";
 
     panel.scrollIntoView({
         behavior: "smooth",
@@ -681,28 +1249,43 @@ function openInvestigation(scanId) {
 
 
 function closeInvestigation() {
+
     const panel =
         document.getElementById(
             "investigation-panel"
         );
 
     if (!panel) {
-        console.error(
-            "Investigation panel not found."
-        );
-
         return;
     }
 
-    panel.classList.add("hidden");
-    panel.style.display = "none";
+    panel.classList.add(
+        "hidden"
+    );
+
+    panel.style.display =
+        "none";
 }
 
+
+/* =========================
+   REVIEW
+========================= */
 
 async function submitReview(
     scanId,
     reviewStatus
 ) {
+
+    if (
+        !hasRole(
+            "super_admin",
+            "investigator"
+        )
+    ) {
+        return;
+    }
+
     const noteElement =
         document.getElementById(
             "review-note"
@@ -719,31 +1302,41 @@ async function submitReview(
             : "";
 
     try {
+
         const response =
             await fetch(
                 `${API_BASE}/scan/${scanId}/review`,
                 {
                     method: "PATCH",
 
-                    headers: {
+                    headers: authHeaders({
                         "Content-Type":
                             "application/json"
-                    },
+                    }),
 
                     body: JSON.stringify({
                         review_status:
                             reviewStatus,
 
                         review_note:
-                            reviewNote || null
+                            reviewNote ||
+                            null
                     })
                 }
             );
+
+        if (
+            response.status === 401
+        ) {
+            handleUnauthorized();
+            return;
+        }
 
         const data =
             await response.json();
 
         if (!response.ok) {
+
             throw new Error(
                 data.detail ||
                 "Failed to update review"
@@ -751,6 +1344,7 @@ async function submitReview(
         }
 
         if (messageElement) {
+
             messageElement.textContent =
                 `Review updated to ${reviewStatus}.`;
 
@@ -765,15 +1359,19 @@ async function submitReview(
 
         await loadDashboard();
 
-        openInvestigation(scanId);
+        openInvestigation(
+            scanId
+        );
 
     } catch (error) {
+
         console.error(
             "Error submitting review:",
             error
         );
 
         if (messageElement) {
+
             messageElement.textContent =
                 error.message ||
                 "Failed to update review.";
@@ -790,8 +1388,24 @@ async function submitReview(
 }
 
 
-async function handleProductSubmit(event) {
+/* =========================
+   PRODUCT REGISTRATION
+========================= */
+
+async function handleProductSubmit(
+    event
+) {
+
     event.preventDefault();
+
+    if (
+        !hasRole(
+            "super_admin",
+            "brand_admin"
+        )
+    ) {
+        return;
+    }
 
     const code =
         document.getElementById(
@@ -814,16 +1428,17 @@ async function handleProductSubmit(event) {
         );
 
     try {
+
         const response =
             await fetch(
                 `${API_BASE}/products/`,
                 {
                     method: "POST",
 
-                    headers: {
+                    headers: authHeaders({
                         "Content-Type":
                             "application/json"
-                    },
+                    }),
 
                     body: JSON.stringify({
                         code,
@@ -835,10 +1450,18 @@ async function handleProductSubmit(event) {
                 }
             );
 
+        if (
+            response.status === 401
+        ) {
+            handleUnauthorized();
+            return;
+        }
+
         const data =
             await response.json();
 
         if (!response.ok) {
+
             throw new Error(
                 data.detail ||
                 "Failed to register product"
@@ -846,6 +1469,7 @@ async function handleProductSubmit(event) {
         }
 
         if (message) {
+
             message.textContent =
                 "Product registered successfully.";
 
@@ -864,13 +1488,17 @@ async function handleProductSubmit(event) {
 
         updateSummary();
 
+        renderProducts();
+
     } catch (error) {
+
         console.error(
             "Error registering product:",
             error
         );
 
         if (message) {
+
             message.textContent =
                 error.message ||
                 "Failed to register product.";
@@ -887,8 +1515,25 @@ async function handleProductSubmit(event) {
 }
 
 
-async function handleScanSubmit(event) {
+/* =========================
+   SCAN SUBMISSION
+========================= */
+
+async function handleScanSubmit(
+    event
+) {
+
     event.preventDefault();
+
+    if (
+        !hasRole(
+            "super_admin",
+            "brand_admin",
+            "staff"
+        )
+    ) {
+        return;
+    }
 
     const code =
         document.getElementById(
@@ -916,16 +1561,17 @@ async function handleScanSubmit(event) {
         );
 
     try {
+
         const response =
             await fetch(
                 `${API_BASE}/scan/`,
                 {
                     method: "POST",
 
-                    headers: {
+                    headers: authHeaders({
                         "Content-Type":
                             "application/json"
-                    },
+                    }),
 
                     body: JSON.stringify({
                         code,
@@ -941,10 +1587,18 @@ async function handleScanSubmit(event) {
                 }
             );
 
+        if (
+            response.status === 401
+        ) {
+            handleUnauthorized();
+            return;
+        }
+
         const data =
             await response.json();
 
         if (!response.ok) {
+
             throw new Error(
                 data.detail ||
                 "Failed to submit scan"
@@ -952,6 +1606,7 @@ async function handleScanSubmit(event) {
         }
 
         if (message) {
+
             message.textContent =
                 data.flagged
                     ? "Scan submitted and flagged."
@@ -973,12 +1628,14 @@ async function handleScanSubmit(event) {
         await loadDashboard();
 
     } catch (error) {
+
         console.error(
             "Error submitting scan:",
             error
         );
 
         if (message) {
+
             message.textContent =
                 error.message ||
                 "Failed to submit scan.";
@@ -995,7 +1652,275 @@ async function handleScanSubmit(event) {
 }
 
 
-function getRiskClass(scan) {
+/* =========================
+   USER MANAGEMENT
+========================= */
+
+async function loadUsers() {
+
+    if (!hasRole("super_admin")) {
+        return;
+    }
+
+    const response =
+        await fetch(
+            `${API_BASE}/auth/users`,
+            {
+                headers:
+                    authHeaders()
+            }
+        );
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        return;
+    }
+
+    if (response.status === 403) {
+
+        console.error(
+            "User management access denied."
+        );
+
+        return;
+    }
+
+    if (!response.ok) {
+
+        throw new Error(
+            "Failed to load users"
+        );
+    }
+
+    users =
+        await response.json();
+
+    renderUsers();
+}
+
+
+function renderUsers() {
+
+    const tableBody =
+        document.getElementById(
+            "users-table-body"
+        );
+
+    if (!tableBody) {
+        return;
+    }
+
+    tableBody.innerHTML = "";
+
+    if (!users.length) {
+
+        tableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="4"
+                    class="loading"
+                >
+                    No users found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    users.forEach(
+        (user) => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+            const statusClass =
+                user.is_active
+                    ? "status-safe"
+                    : "review-required";
+
+            const statusText =
+                user.is_active
+                    ? "Active"
+                    : "Inactive";
+
+            row.innerHTML = `
+                <td>
+                    ${user.id}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        user.email
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        formatRole(
+                            user.role
+                        )
+                    )}
+                </td>
+
+                <td>
+                    <span
+                        class="${statusClass}"
+                    >
+                        ${statusText}
+                    </span>
+                </td>
+            `;
+
+            tableBody.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+async function handleUserSubmit(
+    event
+) {
+
+    event.preventDefault();
+
+    if (!hasRole("super_admin")) {
+        return;
+    }
+
+    const email =
+        document.getElementById(
+            "user-email"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "user-password"
+        ).value;
+
+    const role =
+        document.getElementById(
+            "user-role"
+        ).value;
+
+    const message =
+        document.getElementById(
+            "user-message"
+        );
+
+    if (password.length < 8) {
+
+        if (message) {
+
+            message.textContent =
+                "Password must contain at least 8 characters.";
+
+            message.classList.remove(
+                "form-success"
+            );
+
+            message.classList.add(
+                "form-error"
+            );
+        }
+
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/auth/register`,
+                {
+                    method: "POST",
+
+                    headers: authHeaders({
+                        "Content-Type":
+                            "application/json"
+                    }),
+
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        role
+                    })
+                }
+            );
+
+        if (
+            response.status === 401
+        ) {
+            handleUnauthorized();
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Failed to create user"
+            );
+        }
+
+        if (message) {
+
+            message.textContent =
+                "User created successfully.";
+
+            message.classList.remove(
+                "form-error"
+            );
+
+            message.classList.add(
+                "form-success"
+            );
+        }
+
+        event.target.reset();
+
+        await loadUsers();
+
+    } catch (error) {
+
+        console.error(
+            "Error creating user:",
+            error
+        );
+
+        if (message) {
+
+            message.textContent =
+                error.message ||
+                "Failed to create user.";
+
+            message.classList.remove(
+                "form-success"
+            );
+
+            message.classList.add(
+                "form-error"
+            );
+        }
+    }
+}
+
+
+/* =========================
+   RISK CLASSIFICATION
+========================= */
+
+function getRiskClass(
+    scan
+) {
+
     const reason =
         (
             scan.flag_reason ||
@@ -1030,7 +1955,10 @@ function getRiskClass(scan) {
 }
 
 
-function getRiskText(scan) {
+function getRiskText(
+    scan
+) {
+
     const reason =
         (
             scan.flag_reason ||
@@ -1065,10 +1993,15 @@ function getRiskText(scan) {
 }
 
 
+/* =========================
+   FORMATTING
+========================= */
+
 function formatLocation(
     latitude,
     longitude
 ) {
+
     if (
         latitude === null ||
         latitude === undefined ||
@@ -1082,7 +2015,10 @@ function formatLocation(
 }
 
 
-function formatDate(timestamp) {
+function formatDate(
+    timestamp
+) {
+
     if (!timestamp) {
         return "Unknown";
     }
@@ -1102,7 +2038,14 @@ function formatDate(timestamp) {
 }
 
 
-function escapeHtml(value) {
+/* =========================
+   HTML SAFETY
+========================= */
+
+function escapeHtml(
+    value
+) {
+
     if (
         value === null ||
         value === undefined
@@ -1111,9 +2054,24 @@ function escapeHtml(value) {
     }
 
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
