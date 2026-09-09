@@ -126,8 +126,8 @@ def generate_product_qr(
         image_buffer,
         media_type="image/png",
         headers={
-            "Content-Disposition": (
-                f'inline; filename="{product.code}-trusttrace-qr.png"'
-            )
+           "Content-Disposition": (
+    f'attachment; filename="{product.code}-trusttrace-qr.png"'
+)
         }
     )

@@ -18,14 +18,12 @@ function getToken() {
     return localStorage.getItem(TOKEN_KEY);
 }
 
-
 function saveUser(user) {
     localStorage.setItem(
         USER_KEY,
         JSON.stringify(user)
     );
 }
-
 
 function getStoredUser() {
     const user = localStorage.getItem(USER_KEY);
@@ -41,17 +39,14 @@ function getStoredUser() {
     }
 }
 
-
 function clearAuthentication() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
 }
 
-
 function isAuthenticated() {
     return Boolean(getToken());
 }
-
 
 function hasRole(...roles) {
     if (!currentUser) {
@@ -61,7 +56,6 @@ function hasRole(...roles) {
     return roles.includes(currentUser.role);
 }
 
-
 function authHeaders(extraHeaders = {}) {
     const token = getToken();
 
@@ -70,7 +64,6 @@ function authHeaders(extraHeaders = {}) {
         Authorization: `Bearer ${token}`
     };
 }
-
 
 async function loadCurrentUser() {
     const token = getToken();
@@ -108,22 +101,17 @@ async function loadCurrentUser() {
         );
 
         clearAuthentication();
-
         return null;
     }
 }
 
-
 function handleUnauthorized() {
     clearAuthentication();
-
     window.location.href = "/login";
 }
 
-
 function logout() {
     clearAuthentication();
-
     window.location.href = "/login";
 }
 
@@ -135,7 +123,6 @@ function logout() {
 document.addEventListener(
     "DOMContentLoaded",
     async () => {
-
         const user = await loadCurrentUser();
 
         if (!user) {
@@ -146,7 +133,6 @@ document.addEventListener(
         currentUser = user;
 
         displayCurrentUser();
-
         applyRolePermissions();
 
         await loadDashboard();
@@ -161,7 +147,6 @@ document.addEventListener(
 ========================= */
 
 function showLoginRequired() {
-
     const container =
         document.querySelector(".container");
 
@@ -201,7 +186,6 @@ function showLoginRequired() {
 ========================= */
 
 function displayCurrentUser() {
-
     const emailElements =
         document.querySelectorAll(
             "[data-user-email]"
@@ -230,9 +214,7 @@ function displayCurrentUser() {
     );
 }
 
-
 function formatRole(role) {
-
     if (!role) {
         return "Unknown";
     }
@@ -256,7 +238,6 @@ function formatRole(role) {
 ========================= */
 
 function applyRolePermissions() {
-
     const userManagement =
         document.getElementById(
             "user-management"
@@ -278,18 +259,14 @@ function applyRolePermissions() {
         );
 
     if (userManagement) {
-
         if (hasRole("super_admin")) {
-
             userManagement.classList.remove(
                 "hidden"
             );
 
             userManagement.style.display =
                 "block";
-
         } else {
-
             userManagement.classList.add(
                 "hidden"
             );
@@ -299,25 +276,20 @@ function applyRolePermissions() {
         }
     }
 
-
     if (productManagement) {
-
         if (
             hasRole(
                 "super_admin",
                 "brand_admin"
             )
         ) {
-
             productManagement.classList.remove(
                 "hidden"
             );
 
             productManagement.style.display =
                 "block";
-
         } else {
-
             productManagement.classList.add(
                 "hidden"
             );
@@ -327,9 +299,7 @@ function applyRolePermissions() {
         }
     }
 
-
     if (productForm) {
-
         if (
             hasRole(
                 "super_admin",
@@ -344,9 +314,7 @@ function applyRolePermissions() {
         }
     }
 
-
     if (flagsSection) {
-
         if (
             hasRole(
                 "super_admin",
@@ -354,16 +322,13 @@ function applyRolePermissions() {
                 "investigator"
             )
         ) {
-
             flagsSection.classList.remove(
                 "hidden"
             );
 
             flagsSection.style.display =
                 "block";
-
         } else {
-
             flagsSection.classList.add(
                 "hidden"
             );
@@ -380,20 +345,17 @@ function applyRolePermissions() {
 ========================= */
 
 function attachEventListeners() {
-
     const refreshButton =
         document.getElementById(
             "refresh-btn"
         );
 
     if (refreshButton) {
-
         refreshButton.addEventListener(
             "click",
             loadDashboard
         );
     }
-
 
     const logoutButton =
         document.getElementById(
@@ -401,13 +363,11 @@ function attachEventListeners() {
         );
 
     if (logoutButton) {
-
         logoutButton.addEventListener(
             "click",
             logout
         );
     }
-
 
     const productForm =
         document.getElementById(
@@ -415,13 +375,11 @@ function attachEventListeners() {
         );
 
     if (productForm) {
-
         productForm.addEventListener(
             "submit",
             handleProductSubmit
         );
     }
-
 
     const scanForm =
         document.getElementById(
@@ -429,13 +387,11 @@ function attachEventListeners() {
         );
 
     if (scanForm) {
-
         scanForm.addEventListener(
             "submit",
             handleScanSubmit
         );
     }
-
 
     const userForm =
         document.getElementById(
@@ -443,13 +399,11 @@ function attachEventListeners() {
         );
 
     if (userForm) {
-
         userForm.addEventListener(
             "submit",
             handleUserSubmit
         );
     }
-
 
     const closeInvestigationButton =
         document.getElementById(
@@ -457,7 +411,6 @@ function attachEventListeners() {
         );
 
     if (closeInvestigationButton) {
-
         closeInvestigationButton.addEventListener(
             "click",
             closeInvestigation
@@ -471,14 +424,12 @@ function attachEventListeners() {
 ========================= */
 
 async function loadDashboard() {
-
     if (!isAuthenticated()) {
         handleUnauthorized();
         return;
     }
 
     try {
-
         await Promise.all([
             loadProducts(),
             loadScans(),
@@ -486,6 +437,7 @@ async function loadDashboard() {
         ]);
 
         updateSummary();
+
         renderProducts();
         renderScans();
         renderFlags();
@@ -499,7 +451,6 @@ async function loadDashboard() {
         }
 
     } catch (error) {
-
         console.error(
             "Error loading dashboard:",
             error
@@ -513,7 +464,6 @@ async function loadDashboard() {
 ========================= */
 
 async function loadProducts() {
-
     const response =
         await fetch(
             `${API_BASE}/products/`,
@@ -529,7 +479,6 @@ async function loadProducts() {
     }
 
     if (!response.ok) {
-
         throw new Error(
             "Failed to load products"
         );
@@ -539,9 +488,7 @@ async function loadProducts() {
         await response.json();
 }
 
-
 function renderProducts() {
-
     const tableBody =
         document.getElementById(
             "products-table-body"
@@ -553,15 +500,14 @@ function renderProducts() {
 
     tableBody.innerHTML = "";
 
-    if (!products.length) {
-
+    if (products.length === 0) {
         tableBody.innerHTML = `
             <tr>
                 <td
                     colspan="3"
-                    class="loading"
+                    class="empty-state"
                 >
-                    No registered products.
+                    No registered products found.
                 </td>
             </tr>
         `;
@@ -571,17 +517,53 @@ function renderProducts() {
 
     products.forEach(
         (product) => {
-
             const row =
-                document.createElement(
-                    "tr"
-                );
+                document.createElement("tr");
+
+            const productCode =
+                String(product.code);
+
+            let qrActions = "";
+
+            if (
+                typeof hasRole === "function" &&
+                hasRole(
+                    "super_admin",
+                    "brand_admin"
+                )
+            ) {
+                qrActions = `
+                    <div
+                        style="
+                            margin-top: 8px;
+                            display: flex;
+                            gap: 6px;
+                            flex-wrap: wrap;
+                        "
+                    >
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            onclick="openProductQr('${productCode}')"
+                        >
+                            Generate QR
+                        </button>
+
+                        <button
+                            type="button"
+                            class="secondary-button"
+                            onclick="downloadProductQr('${productCode}')"
+                        >
+                            Download QR
+                        </button>
+                    </div>
+                `;
+            }
 
             row.innerHTML = `
                 <td>
-                    ${escapeHtml(
-                        product.code
-                    )}
+                    ${escapeHtml(productCode)}
+                    ${qrActions}
                 </td>
 
                 <td>
@@ -597,11 +579,202 @@ function renderProducts() {
                 </td>
             `;
 
-            tableBody.appendChild(
-                row
-            );
+            tableBody.appendChild(row);
         }
     );
+}
+
+
+/* =========================
+   GENERATE / DISPLAY QR
+========================= */
+
+async function openProductQr(productCode) {
+    const token = getToken();
+
+    if (!token) {
+        window.location.href = "/login";
+        return;
+    }
+
+    const qrWindow =
+        window.open(
+            "",
+            "_blank"
+        );
+
+    try {
+        const response =
+            await fetch(
+                `${API_BASE}/products/${encodeURIComponent(productCode)}/qr`,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                clearAuthentication();
+
+                if (qrWindow) {
+                    qrWindow.close();
+                }
+
+                window.location.href =
+                    "/login";
+
+                return;
+            }
+
+            throw new Error(
+                "Failed to generate QR code."
+            );
+        }
+
+        const blob =
+            await response.blob();
+
+        const imageUrl =
+            URL.createObjectURL(blob);
+
+        if (qrWindow) {
+            qrWindow.location.href =
+                imageUrl;
+        } else {
+            window.open(
+                imageUrl,
+                "_blank"
+            );
+        }
+
+        setTimeout(
+            () => {
+                URL.revokeObjectURL(
+                    imageUrl
+                );
+            },
+            60000
+        );
+
+    } catch (error) {
+        console.error(
+            "QR generation error:",
+            error
+        );
+
+        if (qrWindow) {
+            qrWindow.close();
+        }
+
+        alert(
+            error.message ||
+            "Unable to generate QR code."
+        );
+    }
+}
+
+
+/* =========================
+   DOWNLOAD QR
+========================= */
+
+async function downloadProductQr(productCode) {
+    const token = getToken();
+
+    if (!token) {
+        window.location.href = "/login";
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                `${API_BASE}/products/${encodeURIComponent(productCode)}/qr`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                clearAuthentication();
+
+                window.location.href =
+                    "/login";
+
+                return;
+            }
+
+            throw new Error(
+                "Failed to generate QR code."
+            );
+        }
+
+        const blob =
+            await response.blob();
+
+        if (
+            !blob ||
+            blob.size === 0
+        ) {
+            throw new Error(
+                "QR code file is empty."
+            );
+        }
+
+        const downloadUrl =
+            URL.createObjectURL(blob);
+
+        const downloadLink =
+            document.createElement("a");
+
+        downloadLink.href =
+            downloadUrl;
+
+        downloadLink.download =
+            `${productCode}-trusttrace-qr.png`;
+
+        downloadLink.style.display =
+            "none";
+
+        document.body.appendChild(
+            downloadLink
+        );
+
+        downloadLink.click();
+
+        document.body.removeChild(
+            downloadLink
+        );
+
+        setTimeout(
+            () => {
+                URL.revokeObjectURL(
+                    downloadUrl
+                );
+            },
+            5000
+        );
+
+    } catch (error) {
+        console.error(
+            "QR download error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Unable to download QR code."
+        );
+    }
 }
 
 
@@ -610,7 +783,6 @@ function renderProducts() {
 ========================= */
 
 async function loadScans() {
-
     const response =
         await fetch(
             `${API_BASE}/scan/`,
@@ -626,7 +798,6 @@ async function loadScans() {
     }
 
     if (!response.ok) {
-
         throw new Error(
             "Failed to load scans"
         );
@@ -636,9 +807,7 @@ async function loadScans() {
         await response.json();
 }
 
-
 function renderScans() {
-
     const tableBody =
         document.getElementById(
             "scans-table-body"
@@ -651,7 +820,6 @@ function renderScans() {
     tableBody.innerHTML = "";
 
     if (!scans.length) {
-
         tableBody.innerHTML = `
             <tr>
                 <td
@@ -668,7 +836,6 @@ function renderScans() {
 
     scans.forEach(
         (scan) => {
-
             const row =
                 document.createElement(
                     "tr"
@@ -741,7 +908,6 @@ function renderScans() {
 ========================= */
 
 async function loadFlags() {
-
     const response =
         await fetch(
             `${API_BASE}/scan/flags`,
@@ -757,7 +923,6 @@ async function loadFlags() {
     }
 
     if (!response.ok) {
-
         throw new Error(
             "Failed to load flagged scans"
         );
@@ -767,9 +932,7 @@ async function loadFlags() {
         await response.json();
 }
 
-
 function renderFlags() {
-
     const tableBody =
         document.getElementById(
             "flags-table-body"
@@ -782,7 +945,6 @@ function renderFlags() {
     tableBody.innerHTML = "";
 
     if (!flags.length) {
-
         tableBody.innerHTML = `
             <tr>
                 <td
@@ -799,7 +961,6 @@ function renderFlags() {
 
     flags.forEach(
         (scan) => {
-
             const row =
                 document.createElement(
                     "tr"
@@ -915,18 +1076,15 @@ function renderFlags() {
         }
     );
 
-
     document
         .querySelectorAll(
             ".review-button"
         )
         .forEach(
             (button) => {
-
                 button.addEventListener(
                     "click",
                     () => {
-
                         const scanId =
                             button.dataset.scanId;
 
@@ -945,7 +1103,6 @@ function renderFlags() {
 ========================= */
 
 function updateSummary() {
-
     const totalScans =
         document.getElementById(
             "total-scans"
@@ -979,7 +1136,8 @@ function updateSummary() {
     if (safeScans) {
         safeScans.textContent =
             Math.max(
-                scans.length - flags.length,
+                scans.length -
+                flags.length,
                 0
             );
     }
@@ -998,7 +1156,6 @@ function updateSummary() {
 function updateAlertBanner(
     hasFlags
 ) {
-
     const banner =
         document.getElementById(
             "alert-banner"
@@ -1025,19 +1182,16 @@ function updateAlertBanner(
     );
 
     if (hasFlags) {
-
         banner.classList.add(
             "alert-warning"
         );
 
         if (title) {
-
             title.textContent =
                 "Suspicious activity detected";
         }
 
         if (description) {
-
             description.textContent =
                 `${flags.length} flagged scan event${
                     flags.length === 1
@@ -1047,19 +1201,16 @@ function updateAlertBanner(
         }
 
     } else {
-
         banner.classList.add(
             "alert-safe"
         );
 
         if (title) {
-
             title.textContent =
                 "No suspicious activity detected";
         }
 
         if (description) {
-
             description.textContent =
                 "All recent scan events appear safe.";
         }
@@ -1074,7 +1225,6 @@ function updateAlertBanner(
 function openInvestigation(
     scanId
 ) {
-
     if (
         !hasRole(
             "super_admin",
@@ -1098,7 +1248,6 @@ function openInvestigation(
         !panel ||
         !content
     ) {
-
         console.error(
             "Investigation panel or content not found."
         );
@@ -1114,7 +1263,6 @@ function openInvestigation(
         );
 
     if (!scan) {
-
         console.error(
             "Could not find scan:",
             scanId
@@ -1128,6 +1276,7 @@ function openInvestigation(
 
             <div class="investigation-item">
                 <span>Scan ID</span>
+
                 <strong>
                     ${scan.id}
                 </strong>
@@ -1135,6 +1284,7 @@ function openInvestigation(
 
             <div class="investigation-item">
                 <span>Product Code</span>
+
                 <strong>
                     ${escapeHtml(
                         scan.code
@@ -1144,6 +1294,7 @@ function openInvestigation(
 
             <div class="investigation-item">
                 <span>Timestamp</span>
+
                 <strong>
                     ${formatDate(
                         scan.timestamp
@@ -1153,6 +1304,7 @@ function openInvestigation(
 
             <div class="investigation-item">
                 <span>Location</span>
+
                 <strong>
                     ${formatLocation(
                         scan.latitude,
@@ -1163,6 +1315,7 @@ function openInvestigation(
 
             <div class="investigation-item">
                 <span>Current Review Status</span>
+
                 <strong>
                     ${escapeHtml(
                         scan.review_status ||
@@ -1247,9 +1400,7 @@ function openInvestigation(
     });
 }
 
-
 function closeInvestigation() {
-
     const panel =
         document.getElementById(
             "investigation-panel"
@@ -1276,7 +1427,6 @@ async function submitReview(
     scanId,
     reviewStatus
 ) {
-
     if (
         !hasRole(
             "super_admin",
@@ -1302,26 +1452,27 @@ async function submitReview(
             : "";
 
     try {
-
         const response =
             await fetch(
                 `${API_BASE}/scan/${scanId}/review`,
                 {
                     method: "PATCH",
 
-                    headers: authHeaders({
-                        "Content-Type":
-                            "application/json"
-                    }),
+                    headers:
+                        authHeaders({
+                            "Content-Type":
+                                "application/json"
+                        }),
 
-                    body: JSON.stringify({
-                        review_status:
-                            reviewStatus,
+                    body:
+                        JSON.stringify({
+                            review_status:
+                                reviewStatus,
 
-                        review_note:
-                            reviewNote ||
-                            null
-                    })
+                            review_note:
+                                reviewNote ||
+                                null
+                        })
                 }
             );
 
@@ -1336,7 +1487,6 @@ async function submitReview(
             await response.json();
 
         if (!response.ok) {
-
             throw new Error(
                 data.detail ||
                 "Failed to update review"
@@ -1344,7 +1494,6 @@ async function submitReview(
         }
 
         if (messageElement) {
-
             messageElement.textContent =
                 `Review updated to ${reviewStatus}.`;
 
@@ -1364,14 +1513,12 @@ async function submitReview(
         );
 
     } catch (error) {
-
         console.error(
             "Error submitting review:",
             error
         );
 
         if (messageElement) {
-
             messageElement.textContent =
                 error.message ||
                 "Failed to update review.";
@@ -1395,7 +1542,6 @@ async function submitReview(
 async function handleProductSubmit(
     event
 ) {
-
     event.preventDefault();
 
     if (
@@ -1428,25 +1574,28 @@ async function handleProductSubmit(
         );
 
     try {
-
         const response =
             await fetch(
                 `${API_BASE}/products/`,
                 {
                     method: "POST",
 
-                    headers: authHeaders({
-                        "Content-Type":
-                            "application/json"
-                    }),
+                    headers:
+                        authHeaders({
+                            "Content-Type":
+                                "application/json"
+                        }),
 
-                    body: JSON.stringify({
-                        code,
-                        product_name:
-                            productName,
-                        batch_id:
-                            batchId
-                    })
+                    body:
+                        JSON.stringify({
+                            code,
+
+                            product_name:
+                                productName,
+
+                            batch_id:
+                                batchId
+                        })
                 }
             );
 
@@ -1461,7 +1610,6 @@ async function handleProductSubmit(
             await response.json();
 
         if (!response.ok) {
-
             throw new Error(
                 data.detail ||
                 "Failed to register product"
@@ -1469,7 +1617,6 @@ async function handleProductSubmit(
         }
 
         if (message) {
-
             message.textContent =
                 "Product registered successfully.";
 
@@ -1487,18 +1634,15 @@ async function handleProductSubmit(
         await loadProducts();
 
         updateSummary();
-
         renderProducts();
 
     } catch (error) {
-
         console.error(
             "Error registering product:",
             error
         );
 
         if (message) {
-
             message.textContent =
                 error.message ||
                 "Failed to register product.";
@@ -1522,7 +1666,6 @@ async function handleProductSubmit(
 async function handleScanSubmit(
     event
 ) {
-
     event.preventDefault();
 
     if (
@@ -1561,29 +1704,34 @@ async function handleScanSubmit(
         );
 
     try {
-
         const response =
             await fetch(
                 `${API_BASE}/scan/`,
                 {
                     method: "POST",
 
-                    headers: authHeaders({
-                        "Content-Type":
-                            "application/json"
-                    }),
+                    headers:
+                        authHeaders({
+                            "Content-Type":
+                                "application/json"
+                        }),
 
-                    body: JSON.stringify({
-                        code,
+                    body:
+                        JSON.stringify({
+                            code,
 
-                        timestamp,
+                            timestamp,
 
-                        latitude:
-                            Number(latitude),
+                            latitude:
+                                Number(
+                                    latitude
+                                ),
 
-                        longitude:
-                            Number(longitude)
-                    })
+                            longitude:
+                                Number(
+                                    longitude
+                                )
+                        })
                 }
             );
 
@@ -1598,7 +1746,6 @@ async function handleScanSubmit(
             await response.json();
 
         if (!response.ok) {
-
             throw new Error(
                 data.detail ||
                 "Failed to submit scan"
@@ -1606,7 +1753,6 @@ async function handleScanSubmit(
         }
 
         if (message) {
-
             message.textContent =
                 data.flagged
                     ? "Scan submitted and flagged."
@@ -1628,14 +1774,12 @@ async function handleScanSubmit(
         await loadDashboard();
 
     } catch (error) {
-
         console.error(
             "Error submitting scan:",
             error
         );
 
         if (message) {
-
             message.textContent =
                 error.message ||
                 "Failed to submit scan.";
@@ -1657,7 +1801,6 @@ async function handleScanSubmit(
 ========================= */
 
 async function loadUsers() {
-
     if (!hasRole("super_admin")) {
         return;
     }
@@ -1677,7 +1820,6 @@ async function loadUsers() {
     }
 
     if (response.status === 403) {
-
         console.error(
             "User management access denied."
         );
@@ -1686,7 +1828,6 @@ async function loadUsers() {
     }
 
     if (!response.ok) {
-
         throw new Error(
             "Failed to load users"
         );
@@ -1698,9 +1839,7 @@ async function loadUsers() {
     renderUsers();
 }
 
-
 function renderUsers() {
-
     const tableBody =
         document.getElementById(
             "users-table-body"
@@ -1713,7 +1852,6 @@ function renderUsers() {
     tableBody.innerHTML = "";
 
     if (!users.length) {
-
         tableBody.innerHTML = `
             <tr>
                 <td
@@ -1730,7 +1868,6 @@ function renderUsers() {
 
     users.forEach(
         (user) => {
-
             const row =
                 document.createElement(
                     "tr"
@@ -1781,11 +1918,9 @@ function renderUsers() {
     );
 }
 
-
 async function handleUserSubmit(
     event
 ) {
-
     event.preventDefault();
 
     if (!hasRole("super_admin")) {
@@ -1813,9 +1948,7 @@ async function handleUserSubmit(
         );
 
     if (password.length < 8) {
-
         if (message) {
-
             message.textContent =
                 "Password must contain at least 8 characters.";
 
@@ -1832,23 +1965,24 @@ async function handleUserSubmit(
     }
 
     try {
-
         const response =
             await fetch(
                 `${API_BASE}/auth/register`,
                 {
                     method: "POST",
 
-                    headers: authHeaders({
-                        "Content-Type":
-                            "application/json"
-                    }),
+                    headers:
+                        authHeaders({
+                            "Content-Type":
+                                "application/json"
+                        }),
 
-                    body: JSON.stringify({
-                        email,
-                        password,
-                        role
-                    })
+                    body:
+                        JSON.stringify({
+                            email,
+                            password,
+                            role
+                        })
                 }
             );
 
@@ -1863,7 +1997,6 @@ async function handleUserSubmit(
             await response.json();
 
         if (!response.ok) {
-
             throw new Error(
                 data.detail ||
                 "Failed to create user"
@@ -1871,7 +2004,6 @@ async function handleUserSubmit(
         }
 
         if (message) {
-
             message.textContent =
                 "User created successfully.";
 
@@ -1889,14 +2021,12 @@ async function handleUserSubmit(
         await loadUsers();
 
     } catch (error) {
-
         console.error(
             "Error creating user:",
             error
         );
 
         if (message) {
-
             message.textContent =
                 error.message ||
                 "Failed to create user.";
@@ -1920,7 +2050,6 @@ async function handleUserSubmit(
 function getRiskClass(
     scan
 ) {
-
     const reason =
         (
             scan.flag_reason ||
@@ -1954,11 +2083,9 @@ function getRiskClass(
     return "review-low";
 }
 
-
 function getRiskText(
     scan
 ) {
-
     const reason =
         (
             scan.flag_reason ||
@@ -2001,7 +2128,6 @@ function formatLocation(
     latitude,
     longitude
 ) {
-
     if (
         latitude === null ||
         latitude === undefined ||
@@ -2014,11 +2140,9 @@ function formatLocation(
     return `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}`;
 }
 
-
 function formatDate(
     timestamp
 ) {
-
     if (!timestamp) {
         return "Unknown";
     }
@@ -2045,7 +2169,6 @@ function formatDate(
 function escapeHtml(
     value
 ) {
-
     if (
         value === null ||
         value === undefined
