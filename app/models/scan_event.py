@@ -38,6 +38,11 @@ class ScanEvent(Base):
         nullable=False
     )
 
+    location_accuracy = Column(
+        Float,
+        nullable=True
+    )
+
     flagged = Column(
         Boolean,
         default=False,

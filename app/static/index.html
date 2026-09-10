@@ -47,7 +47,6 @@
 
         </div>
 
-
         <div class="api-status">
 
             <span class="status-dot"></span>
@@ -71,6 +70,7 @@
         <section class="panel user-bar">
 
             <div>
+
                 <strong>
                     Signed in as:
                 </strong>
@@ -78,9 +78,11 @@
                 <span data-user-email>
                     Loading...
                 </span>
+
             </div>
 
             <div>
+
                 <strong>
                     Role:
                 </strong>
@@ -88,6 +90,7 @@
                 <span data-user-role>
                     Loading...
                 </span>
+
             </div>
 
             <button
@@ -425,6 +428,7 @@
 
                 <div class="form-row">
 
+
                     <div class="form-group">
 
                         <label for="user-email">
@@ -726,6 +730,8 @@
                     </div>
 
 
+                    <!-- LOCATION -->
+
                     <div class="form-row">
 
 
@@ -765,6 +771,46 @@
                         </div>
 
                     </div>
+
+
+                    <!-- LOCATION ACCURACY -->
+
+                    <div class="form-group">
+
+                        <label for="location-accuracy">
+                            Location Accuracy (meters)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="location-accuracy"
+                            name="location-accuracy"
+                            step="any"
+                            min="0"
+                            placeholder="e.g. 15"
+                        >
+
+                        <small
+                            id="location-status"
+                            style="display:block; margin-top:6px;"
+                        >
+                            Accuracy will be captured from your device
+                            when available.
+                        </small>
+
+                    </div>
+
+
+                    <!-- GET CURRENT LOCATION -->
+
+                    <button
+                        id="get-location-btn"
+                        type="button"
+                        class="secondary-button"
+                        style="margin-bottom: 12px;"
+                    >
+                        Use My Current Location
+                    </button>
 
 
                     <button
@@ -1068,8 +1114,140 @@
     ========================== -->
 
     <script
-        src="/static/js/dashboard.js?v=4"
+        src="/static/js/dashboard.js?v=5"
     ></script>
+
+
+    <!-- =========================
+         DEVICE LOCATION
+    ========================== -->
+
+    <script>
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const locationButton =
+                document.getElementById("get-location-btn");
+
+            const latitudeInput =
+                document.getElementById("latitude");
+
+            const longitudeInput =
+                document.getElementById("longitude");
+
+            const accuracyInput =
+                document.getElementById("location-accuracy");
+
+            const locationStatus =
+                document.getElementById("location-status");
+
+
+            if (!locationButton) {
+                return;
+            }
+
+
+            locationButton.addEventListener("click", () => {
+
+                if (!navigator.geolocation) {
+
+                    locationStatus.textContent =
+                        "Geolocation is not supported by this browser.";
+
+                    return;
+                }
+
+
+                locationButton.disabled = true;
+
+                locationButton.textContent =
+                    "Getting Location...";
+
+                locationStatus.textContent =
+                    "Requesting your device location...";
+
+
+                navigator.geolocation.getCurrentPosition(
+
+                    (position) => {
+
+                        const latitude =
+                            position.coords.latitude;
+
+                        const longitude =
+                            position.coords.longitude;
+
+                        const accuracy =
+                            position.coords.accuracy;
+
+
+                        latitudeInput.value =
+                            latitude.toFixed(6);
+
+                        longitudeInput.value =
+                            longitude.toFixed(6);
+
+                        accuracyInput.value =
+                            accuracy.toFixed(2);
+
+
+                        locationStatus.textContent =
+                            `Location captured successfully. Accuracy: ±${accuracy.toFixed(1)} meters.`;
+
+
+                        locationButton.disabled = false;
+
+                        locationButton.textContent =
+                            "Update My Current Location";
+
+                    },
+
+
+                    (error) => {
+
+                        let message =
+                            "Unable to retrieve your location.";
+
+                        if (error.code === 1) {
+                            message =
+                                "Location permission was denied. You can enter coordinates manually.";
+                        }
+
+                        if (error.code === 2) {
+                            message =
+                                "Your location could not be determined. Try again or enter coordinates manually.";
+                        }
+
+                        if (error.code === 3) {
+                            message =
+                                "Location request timed out. Try again.";
+                        }
+
+
+                        locationStatus.textContent =
+                            message;
+
+
+                        locationButton.disabled = false;
+
+                        locationButton.textContent =
+                            "Try Location Again";
+
+                    },
+
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+
+                );
+
+            });
+
+        });
+
+    </script>
 
 </body>
 
