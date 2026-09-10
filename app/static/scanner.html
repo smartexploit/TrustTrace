@@ -57,8 +57,7 @@
             border: 1px solid #292929;
             border-radius: 16px;
             padding: 20px;
-            box-shadow:
-                0 12px 35px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
         }
 
         h1 {
@@ -300,7 +299,6 @@
                 id="result"
                 class="result"
             >
-
                 <strong>
                     QR code detected
                 </strong>
@@ -335,7 +333,6 @@
                     </button>
 
                 </div>
-
             </div>
 
             <div
@@ -425,26 +422,18 @@
             document.getElementById("manual-verify");
 
 
-        function setMessage(
-            text,
-            type = ""
-        ) {
+        function setMessage(text, type = "") {
             message.textContent = text;
-
-            message.className =
-                `message ${type}`;
+            message.className = `message ${type}`;
         }
 
 
         function extractProductCode(value) {
-
             const text =
                 String(value || "").trim();
 
             try {
-
-                const url =
-                    new URL(text);
+                const url = new URL(text);
 
                 const code =
                     url.searchParams.get("code");
@@ -452,7 +441,6 @@
                 if (code) {
                     return code.toUpperCase();
                 }
-
             } catch (error) {
                 // QR content may be plain text.
             }
@@ -469,7 +457,6 @@
 
 
         function showDetectedCode(code) {
-
             detectedCode = code;
             scanRecorded = false;
 
@@ -488,20 +475,14 @@
         }
 
 
-        function showScanDetails(
-            text,
-            type = ""
-        ) {
-
+        function showScanDetails(text, type = "") {
             scanDetails.textContent = text;
-
             scanDetails.className =
                 `scan-details ${type}`;
         }
 
 
         function disableVerification() {
-
             verifyButton.classList.add("disabled");
 
             verifyButton.setAttribute(
@@ -519,39 +500,35 @@
 
 
         function enableVerification(code) {
-
-            verifyButton.classList.remove(
-                "disabled"
-            );
+            verifyButton.classList.remove("disabled");
 
             verifyButton.removeAttribute(
                 "aria-disabled"
             );
 
+            /*
+             * Important:
+             * The scanner has already recorded the scan.
+             * Tell verify.html not to record it again.
+             */
             verifyButton.href =
-                `/verify?code=${encodeURIComponent(code)}`;
+                `/verify?code=${encodeURIComponent(code)}&scan_recorded=1`;
 
             verifyButton.onclick = null;
         }
 
 
         async function stopScanner() {
-
             if (!scanner) {
-
                 scannerRunning = false;
-
                 return;
             }
 
             try {
-
                 if (scannerRunning) {
                     await scanner.stop();
                 }
-
             } catch (error) {
-
                 console.warn(
                     "Scanner stop warning:",
                     error
@@ -559,11 +536,8 @@
             }
 
             try {
-
                 scanner.clear();
-
             } catch (error) {
-
                 console.warn(
                     "Scanner clear warning:",
                     error
@@ -575,24 +549,19 @@
 
 
         async function getCameras() {
-
             if (
                 typeof Html5Qrcode ===
                 "undefined"
             ) {
-
                 throw new Error(
                     "QR scanner library could not be loaded."
                 );
             }
 
             try {
-
                 availableCameras =
                     await Html5Qrcode.getCameras();
-
             } catch (error) {
-
                 console.error(
                     "Camera enumeration error:",
                     error
@@ -607,7 +576,6 @@
                 !availableCameras ||
                 availableCameras.length === 0
             ) {
-
                 throw new Error(
                     "No camera was found on this device."
                 );
@@ -618,14 +586,12 @@
 
 
         function selectBestCamera(cameras) {
-
             if (!cameras.length) {
                 return null;
             }
 
             const preferredCamera =
                 cameras.find((camera) => {
-
                     const label =
                         (
                             camera.label ||
@@ -647,14 +613,10 @@
 
 
         function getDeviceLocation() {
-
             return new Promise(
                 (resolve, reject) => {
 
-                    if (
-                        !navigator.geolocation
-                    ) {
-
+                    if (!navigator.geolocation) {
                         reject(
                             new Error(
                                 "Location services are not supported by this browser."
@@ -670,7 +632,6 @@
                     );
 
                     navigator.geolocation.getCurrentPosition(
-
                         (position) => {
 
                             const latitude =
@@ -683,14 +644,9 @@
                                 position.coords.accuracy;
 
                             if (
-                                !Number.isFinite(
-                                    latitude
-                                ) ||
-                                !Number.isFinite(
-                                    longitude
-                                )
+                                !Number.isFinite(latitude) ||
+                                !Number.isFinite(longitude)
                             ) {
-
                                 reject(
                                     new Error(
                                         "The device returned an invalid location."
@@ -721,7 +677,6 @@
                                 error.code ===
                                 error.PERMISSION_DENIED
                             ) {
-
                                 errorMessage =
                                     "Location permission was denied. Allow location access for TrustTrace and try again.";
 
@@ -729,7 +684,6 @@
                                 error.code ===
                                 error.POSITION_UNAVAILABLE
                             ) {
-
                                 errorMessage =
                                     "Device location is currently unavailable. Check your phone's GPS/location setting and try again.";
 
@@ -737,7 +691,6 @@
                                 error.code ===
                                 error.TIMEOUT
                             ) {
-
                                 errorMessage =
                                     "Location request timed out. Make sure GPS/location services are enabled and try again.";
                             }
@@ -764,7 +717,6 @@
             code,
             location
         ) {
-
             const response =
                 await fetch(
                     "/scan/public",
@@ -779,10 +731,13 @@
                         body:
                             JSON.stringify({
                                 code: code,
+
                                 latitude:
                                     location.latitude,
+
                                 longitude:
                                     location.longitude,
+
                                 location_accuracy:
                                     location.accuracy
                             })
@@ -792,17 +747,13 @@
             let data = null;
 
             try {
-
                 data =
                     await response.json();
-
             } catch (error) {
-
                 // Response may not contain JSON.
             }
 
             if (!response.ok) {
-
                 throw new Error(
                     data?.detail ||
                     "TrustTrace could not record the scan."
@@ -813,16 +764,12 @@
         }
 
 
-        async function recordScan(
-            code
-        ) {
-
+        async function recordScan(code) {
             if (scanSubmitting) {
                 return null;
             }
 
             scanSubmitting = true;
-
             scanRecorded = false;
 
             disableVerification();
@@ -830,7 +777,6 @@
             try {
 
                 if (!code) {
-
                     throw new Error(
                         "No valid TrustTrace product code was detected."
                     );
@@ -871,7 +817,6 @@
                     );
 
                 if (!scan) {
-
                     throw new Error(
                         "TrustTrace did not return a valid scan record."
                     );
@@ -884,14 +829,11 @@
                 );
 
                 if (scan.flagged) {
-
                     setMessage(
                         "Scan recorded. TrustTrace detected potentially suspicious scan activity.",
                         "warning"
                     );
-
                 } else {
-
                     setMessage(
                         "Scan recorded successfully. You can now verify the product.",
                         "success"
@@ -928,20 +870,15 @@
                 return null;
 
             } finally {
-
                 scanSubmitting = false;
             }
         }
 
 
-        async function processDetectedCode(
-            code
-        ) {
-
+        async function processDetectedCode(code) {
             showDetectedCode(code);
 
             if (!code) {
-
                 setMessage(
                     "QR detected, but it does not contain a valid TrustTrace product code.",
                     "warning"
@@ -955,13 +892,11 @@
 
 
         async function startScanner() {
-
             await stopScanner();
 
             result.classList.remove("show");
 
             detectedCode = null;
-
             scanRecorded = false;
 
             disableVerification();
@@ -974,7 +909,6 @@
                 typeof Html5Qrcode ===
                 "undefined"
             ) {
-
                 setMessage(
                     "QR scanner library could not be loaded. Use manual code entry below.",
                     "error"
@@ -989,12 +923,9 @@
                     await getCameras();
 
                 const selectedCamera =
-                    selectBestCamera(
-                        cameras
-                    );
+                    selectBestCamera(cameras);
 
                 if (!selectedCamera) {
-
                     throw new Error(
                         "No usable camera was found."
                     );
@@ -1011,7 +942,6 @@
                 );
 
                 await scanner.start(
-
                     selectedCamera.id,
 
                     {
@@ -1069,17 +999,9 @@
 
                 scannerRunning = false;
 
-                let errorMessage =
+                const errorMessage =
+                    error?.message ||
                     "Camera could not be started.";
-
-                if (
-                    error &&
-                    error.message
-                ) {
-
-                    errorMessage =
-                        error.message;
-                }
 
                 setMessage(
                     `${errorMessage} You can enter the product code manually below.`,
@@ -1120,7 +1042,6 @@
                     );
 
                 if (!validCode) {
-
                     setMessage(
                         "Enter a valid TrustTrace product code such as TT-ABC123.",
                         "error"
@@ -1145,7 +1066,6 @@
                 if (
                     event.key === "Enter"
                 ) {
-
                     manualVerifyButton.click();
                 }
             }
@@ -1160,7 +1080,6 @@
                     scanner &&
                     scannerRunning
                 ) {
-
                     scanner.stop()
                         .catch(() => {});
                 }

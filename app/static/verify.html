@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#111827">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta
+        name="theme-color"
+        content="#111827"
+    >
     <title>Verify Product | TrustTrace</title>
+
     <style>
         * {
             box-sizing: border-box;
@@ -103,7 +110,7 @@
         .search-form {
             display: flex;
             gap: 10px;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
         }
 
         .search-form input {
@@ -134,6 +141,48 @@
         .search-form button:disabled {
             opacity: 0.6;
             cursor: wait;
+        }
+
+        .location-panel {
+            display: none;
+            margin-bottom: 18px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+
+        .location-panel.visible {
+            display: block;
+        }
+
+        .location-title {
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .location-message {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .location-data {
+            margin-top: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #78350f;
+        }
+
+        .location-retry {
+            margin-top: 12px;
+            border: 0;
+            border-radius: 8px;
+            padding: 9px 13px;
+            background: #111827;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
         }
 
         .result {
@@ -242,7 +291,8 @@
         }
 
         .loading,
-        .error {
+        .error,
+        .success {
             display: none;
             margin-top: 14px;
             padding: 13px;
@@ -261,8 +311,15 @@
             border: 1px solid #fecaca;
         }
 
+        .success {
+            color: #166534;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
         .loading.visible,
-        .error.visible {
+        .error.visible,
+        .success.visible {
             display: block;
         }
 
@@ -307,190 +364,945 @@
         }
     </style>
 </head>
+
 <body>
-    <div class="page">
-        <header class="header">
-            <div class="header-inner">
-                <div class="brand">Trust<span>Trace</span></div>
-                <div class="tagline">Product authenticity verification</div>
+
+<div class="page">
+
+    <header class="header">
+        <div class="header-inner">
+            <div class="brand">
+                Trust<span>Trace</span>
             </div>
-        </header>
 
-        <main class="main">
-            <section class="card">
-                <div class="intro">
-                    <div class="shield">🛡️</div>
-                    <h1>Verify this product</h1>
-                    <p>Enter the TrustTrace product code to check its registration and latest verification status.</p>
+            <div class="tagline">
+                Product authenticity verification
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+
+        <section class="card">
+
+            <div class="intro">
+
+                <div class="shield">
+                    🛡️
                 </div>
 
-                <form class="search-form" id="verification-form">
-                    <input
-                        id="product-code"
-                        type="text"
-                        placeholder="Example: TT-ABC123"
-                        maxlength="9"
-                        autocomplete="off"
-                        required
-                    >
-                    <button id="verify-button" type="submit">Verify</button>
-                </form>
+                <h1>
+                    Verify this product
+                </h1>
 
-                <div class="loading" id="loading">Checking product...</div>
-                <div class="error" id="error"></div>
+                <p>
+                    TrustTrace records the verification scan and checks the
+                    product's registration and latest activity.
+                </p>
 
-                <div class="result" id="result">
-                    <div class="status-row">
-                        <div class="status-icon" id="status-icon"></div>
-                        <div>
-                            <h2 class="status-title" id="status-title"></h2>
-                            <p class="status-label" id="status-label"></p>
-                        </div>
-                    </div>
+            </div>
 
-                    <p class="message" id="message"></p>
+            <form
+                class="search-form"
+                id="verification-form"
+            >
 
-                    <div class="details" id="details">
-                        <div class="detail">
-                            <span class="detail-label">Product</span>
-                            <span class="detail-value" id="product-name">—</span>
-                        </div>
-                        <div class="detail">
-                            <span class="detail-label">Batch</span>
-                            <span class="detail-value" id="batch-id">—</span>
-                        </div>
-                        <div class="detail">
-                            <span class="detail-label">Product code</span>
-                            <span class="detail-value" id="verified-code">—</span>
-                        </div>
-                        <div class="detail">
-                            <span class="detail-label">Registration</span>
-                            <span class="detail-value" id="registration">—</span>
-                        </div>
-                    </div>
+                <input
+                    id="product-code"
+                    type="text"
+                    placeholder="Example: TT-ABC123"
+                    maxlength="9"
+                    autocomplete="off"
+                    required
+                >
 
-                    <div class="reason" id="reason" style="display: none;"></div>
+                <button
+                    id="verify-button"
+                    type="submit"
+                >
+                    Verify
+                </button>
+
+            </form>
+
+            <div
+                class="location-panel"
+                id="location-panel"
+            >
+
+                <div
+                    class="location-title"
+                    id="location-title"
+                >
+                    Location permission required
                 </div>
-            </section>
-        </main>
 
-        <footer class="footer">
-            Powered by TrustTrace · Product authenticity and distribution intelligence
-        </footer>
-    </div>
+                <div
+                    class="location-message"
+                    id="location-message"
+                >
+                    TrustTrace needs your device location to record this
+                    verification scan.
+                </div>
 
-    <script>
-        const form = document.getElementById("verification-form");
-        const input = document.getElementById("product-code");
-        const button = document.getElementById("verify-button");
-        const result = document.getElementById("result");
-        const loading = document.getElementById("loading");
-        const error = document.getElementById("error");
-        const statusIcon = document.getElementById("status-icon");
-        const statusTitle = document.getElementById("status-title");
-        const statusLabel = document.getElementById("status-label");
-        const message = document.getElementById("message");
-        const productName = document.getElementById("product-name");
-        const batchId = document.getElementById("batch-id");
-        const verifiedCode = document.getElementById("verified-code");
-        const registration = document.getElementById("registration");
-        const reason = document.getElementById("reason");
+                <div
+                    class="location-data"
+                    id="location-data"
+                ></div>
 
-        function getCodeFromUrl() {
-            const params = new URLSearchParams(window.location.search);
-            return (params.get("code") || "").trim().toUpperCase();
-        }
+                <button
+                    class="location-retry"
+                    id="location-retry"
+                    type="button"
+                    style="display:none;"
+                >
+                    Try Location Again
+                </button>
 
-        function setLoading(isLoading) {
-            button.disabled = isLoading;
-            button.textContent = isLoading ? "Checking..." : "Verify";
-            loading.classList.toggle("visible", isLoading);
-        }
+            </div>
 
-        function showError(text) {
-            error.textContent = text;
-            error.classList.add("visible");
-        }
+            <div
+                class="loading"
+                id="loading"
+            >
+                Preparing verification...
+            </div>
 
-        function clearError() {
-            error.textContent = "";
-            error.classList.remove("visible");
-        }
+            <div
+                class="error"
+                id="error"
+            ></div>
 
-        function renderResult(data) {
-            result.className = "result visible";
-            reason.style.display = "none";
-            reason.textContent = "";
+            <div
+                class="success"
+                id="success"
+            >
+                Scan recorded successfully. Checking product...
+            </div>
 
-            productName.textContent = data.product_name || "Not registered";
-            batchId.textContent = data.batch_id || "Not available";
-            verifiedCode.textContent = data.code || input.value;
-            registration.textContent = data.registered ? "Registered" : "Not registered";
-            message.textContent = data.message || "";
+            <div
+                class="result"
+                id="result"
+            >
 
-            if (data.status === "AUTHENTIC") {
-                result.classList.add("authentic");
-                statusIcon.textContent = "✓";
-                statusTitle.textContent = "Product Verified";
-                statusLabel.textContent = "AUTHENTIC";
-            } else if (data.status === "SUSPICIOUS") {
-                result.classList.add("suspicious");
-                statusIcon.textContent = "!";
-                statusTitle.textContent = "Suspicious Activity Detected";
-                statusLabel.textContent = "REQUIRES INVESTIGATION";
+                <div class="status-row">
 
-                if (data.last_scan_reason) {
-                    reason.textContent = "Detection reason: " + data.last_scan_reason;
-                    reason.style.display = "block";
+                    <div
+                        class="status-icon"
+                        id="status-icon"
+                    ></div>
+
+                    <div>
+
+                        <h2
+                            class="status-title"
+                            id="status-title"
+                        ></h2>
+
+                        <p
+                            class="status-label"
+                            id="status-label"
+                        ></p>
+
+                    </div>
+
+                </div>
+
+                <p
+                    class="message"
+                    id="message"
+                ></p>
+
+                <div
+                    class="details"
+                    id="details"
+                >
+
+                    <div class="detail">
+
+                        <span class="detail-label">
+                            Product
+                        </span>
+
+                        <span
+                            class="detail-value"
+                            id="product-name"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="detail">
+
+                        <span class="detail-label">
+                            Batch
+                        </span>
+
+                        <span
+                            class="detail-value"
+                            id="batch-id"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="detail">
+
+                        <span class="detail-label">
+                            Product code
+                        </span>
+
+                        <span
+                            class="detail-value"
+                            id="verified-code"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                    <div class="detail">
+
+                        <span class="detail-label">
+                            Registration
+                        </span>
+
+                        <span
+                            class="detail-value"
+                            id="registration"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="reason"
+                    id="reason"
+                    style="display:none;"
+                ></div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        Powered by TrustTrace · Product authenticity and distribution intelligence
+    </footer>
+
+</div>
+
+<script>
+
+    const form =
+        document.getElementById("verification-form");
+
+    const input =
+        document.getElementById("product-code");
+
+    const button =
+        document.getElementById("verify-button");
+
+    const result =
+        document.getElementById("result");
+
+    const loading =
+        document.getElementById("loading");
+
+    const error =
+        document.getElementById("error");
+
+    const success =
+        document.getElementById("success");
+
+    const locationPanel =
+        document.getElementById("location-panel");
+
+    const locationTitle =
+        document.getElementById("location-title");
+
+    const locationMessage =
+        document.getElementById("location-message");
+
+    const locationData =
+        document.getElementById("location-data");
+
+    const locationRetry =
+        document.getElementById("location-retry");
+
+    const statusIcon =
+        document.getElementById("status-icon");
+
+    const statusTitle =
+        document.getElementById("status-title");
+
+    const statusLabel =
+        document.getElementById("status-label");
+
+    const message =
+        document.getElementById("message");
+
+    const productName =
+        document.getElementById("product-name");
+
+    const batchId =
+        document.getElementById("batch-id");
+
+    const verifiedCode =
+        document.getElementById("verified-code");
+
+    const registration =
+        document.getElementById("registration");
+
+    const reason =
+        document.getElementById("reason");
+
+
+    let currentCode = "";
+
+    let scanRecorded = false;
+
+    let verificationStarted = false;
+
+
+    function getCodeFromUrl() {
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        return (
+            params.get("code") || ""
+        )
+            .trim()
+            .toUpperCase();
+
+    }
+
+
+    function wasScanAlreadyRecorded() {
+
+        const params =
+            new URLSearchParams(window.location.search);
+
+        return (
+            params.get("scan_recorded") === "1"
+        );
+
+    }
+
+
+    function setLoading(isLoading, text) {
+
+        button.disabled = isLoading;
+
+        button.textContent =
+            isLoading
+                ? "Checking..."
+                : "Verify";
+
+        loading.textContent =
+            text || "Preparing verification...";
+
+        loading.classList.toggle(
+            "visible",
+            isLoading
+        );
+
+    }
+
+
+    function showError(text) {
+
+        error.textContent = text;
+
+        error.classList.add("visible");
+
+    }
+
+
+    function clearError() {
+
+        error.textContent = "";
+
+        error.classList.remove("visible");
+
+    }
+
+
+    function showSuccess(text) {
+
+        success.textContent = text;
+
+        success.classList.add("visible");
+
+    }
+
+
+    function hideSuccess() {
+
+        success.textContent = "";
+
+        success.classList.remove("visible");
+
+    }
+
+
+    function showLocationPanel(
+        title,
+        text
+    ) {
+
+        locationTitle.textContent =
+            title;
+
+        locationMessage.textContent =
+            text;
+
+        locationPanel.classList.add(
+            "visible"
+        );
+
+    }
+
+
+    function hideLocationPanel() {
+
+        locationPanel.classList.remove(
+            "visible"
+        );
+
+        locationData.textContent = "";
+
+        locationRetry.style.display =
+            "none";
+
+    }
+
+
+    function getDeviceLocation() {
+
+        return new Promise(
+            function(resolve, reject) {
+
+                if (!navigator.geolocation) {
+
+                    reject(
+                        new Error(
+                            "This device or browser does not support location services."
+                        )
+                    );
+
+                    return;
                 }
+
+
+                showLocationPanel(
+                    "Location permission required",
+                    "TrustTrace needs your device location to record this verification scan."
+                );
+
+
+                locationData.textContent =
+                    "Requesting your current location...";
+
+
+                navigator.geolocation.getCurrentPosition(
+
+                    function(position) {
+
+                        const location = {
+
+                            latitude:
+                                Number(
+                                    position.coords.latitude
+                                ),
+
+                            longitude:
+                                Number(
+                                    position.coords.longitude
+                                ),
+
+                            accuracy:
+                                Number(
+                                    position.coords.accuracy
+                                )
+
+                        };
+
+
+                        locationData.textContent =
+                            "Location captured. Accuracy: "
+                            + location.accuracy.toFixed(1)
+                            + " meters.";
+
+
+                        resolve(location);
+
+                    },
+
+                    function(error) {
+
+                        let messageText =
+                            "Unable to obtain your device location.";
+
+
+                        if (error.code === 1) {
+
+                            messageText =
+                                "Location permission was denied. Please allow location access for TrustTrace and try again.";
+
+                        } else if (error.code === 2) {
+
+                            messageText =
+                                "Your device could not determine its location. Please enable GPS/location services and try again.";
+
+                        } else if (error.code === 3) {
+
+                            messageText =
+                                "Location request timed out. Please make sure location services are enabled and try again.";
+
+                        }
+
+
+                        locationData.textContent =
+                            messageText;
+
+
+                        locationRetry.style.display =
+                            "inline-block";
+
+
+                        reject(
+                            new Error(messageText)
+                        );
+
+                    },
+
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+
+                );
+
+            }
+        );
+
+    }
+
+
+    async function recordScan(code) {
+
+        if (!code) {
+
+            throw new Error(
+                "A valid product code is required before recording the scan."
+            );
+
+        }
+
+
+        if (scanRecorded) {
+
+            return true;
+
+        }
+
+
+        setLoading(
+            true,
+            "Requesting location permission..."
+        );
+
+
+        const location =
+            await getDeviceLocation();
+
+
+        setLoading(
+            true,
+            "Recording verification scan..."
+        );
+
+
+        const response =
+            await fetch(
+                "/scan/public",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        code: code,
+
+                        latitude:
+                            location.latitude,
+
+                        longitude:
+                            location.longitude,
+
+                        location_accuracy:
+                            location.accuracy
+
+                    })
+
+                }
+            );
+
+
+        let data = null;
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (jsonError) {
+
+            data = null;
+
+        }
+
+
+        if (!response.ok) {
+
+            const detail =
+                data && data.detail
+                    ? data.detail
+                    : "TrustTrace could not record this verification scan.";
+
+            throw new Error(detail);
+
+        }
+
+
+        scanRecorded = true;
+
+        hideLocationPanel();
+
+        showSuccess(
+            "Scan recorded successfully. Checking product..."
+        );
+
+        return true;
+
+    }
+
+
+    async function verifyCode(code) {
+
+        clearError();
+
+        hideSuccess();
+
+        result.className =
+            "result";
+
+        setLoading(
+            true,
+            "Checking product..."
+        );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/verify/" +
+                    encodeURIComponent(code)
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.detail ||
+                    "Unable to verify this product code."
+                );
+
+            }
+
+
+            renderResult(data);
+
+        } catch (err) {
+
+            showError(
+                err.message ||
+                "Unable to verify this product code."
+            );
+
+        } finally {
+
+            setLoading(
+                false
+            );
+
+        }
+
+    }
+
+
+    async function processVerification(
+        code
+    ) {
+
+        if (verificationStarted) {
+
+            return;
+
+        }
+
+
+        verificationStarted = true;
+
+        currentCode = code;
+
+
+        clearError();
+
+        hideSuccess();
+
+        result.className =
+            "result";
+
+
+        try {
+
+            if (
+                !wasScanAlreadyRecorded()
+            ) {
+
+                await recordScan(code);
+
             } else {
-                result.classList.add("unknown");
-                statusIcon.textContent = "?";
-                statusTitle.textContent = "Product Not Recognized";
-                statusLabel.textContent = "UNKNOWN CODE";
+
+                scanRecorded = true;
+
             }
+
+
+            await verifyCode(code);
+
+        } catch (err) {
+
+            setLoading(
+                false
+            );
+
+            showError(
+                err.message ||
+                "The verification scan could not be recorded."
+            );
+
+        } finally {
+
+            verificationStarted = false;
+
         }
 
-        async function verifyCode(code) {
-            clearError();
-            result.className = "result";
-            setLoading(true);
+    }
 
-            try {
-                const response = await fetch("/verify/" + encodeURIComponent(code));
-                const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(data.detail || "Unable to verify this product code.");
-                }
+    function renderResult(data) {
 
-                renderResult(data);
-            } catch (err) {
-                showError(err.message || "Unable to verify this product code.");
-            } finally {
-                setLoading(false);
+        result.className =
+            "result visible";
+
+        reason.style.display =
+            "none";
+
+        reason.textContent =
+            "";
+
+
+        productName.textContent =
+            data.product_name ||
+            "Not registered";
+
+
+        batchId.textContent =
+            data.batch_id ||
+            "Not available";
+
+
+        verifiedCode.textContent =
+            data.code ||
+            input.value;
+
+
+        registration.textContent =
+            data.registered
+                ? "Registered"
+                : "Not registered";
+
+
+        message.textContent =
+            data.message || "";
+
+
+        if (
+            data.status ===
+            "AUTHENTIC"
+        ) {
+
+            result.classList.add(
+                "authentic"
+            );
+
+            statusIcon.textContent =
+                "✓";
+
+            statusTitle.textContent =
+                "Product Verified";
+
+            statusLabel.textContent =
+                "AUTHENTIC";
+
+        } else if (
+            data.status ===
+            "SUSPICIOUS"
+        ) {
+
+            result.classList.add(
+                "suspicious"
+            );
+
+            statusIcon.textContent =
+                "!";
+
+            statusTitle.textContent =
+                "Suspicious Activity Detected";
+
+            statusLabel.textContent =
+                "REQUIRES INVESTIGATION";
+
+
+            if (
+                data.last_scan_reason
+            ) {
+
+                reason.textContent =
+                    "Detection reason: " +
+                    data.last_scan_reason;
+
+                reason.style.display =
+                    "block";
+
             }
+
+        } else {
+
+            result.classList.add(
+                "unknown"
+            );
+
+            statusIcon.textContent =
+                "?";
+
+            statusTitle.textContent =
+                "Product Not Recognized";
+
+            statusLabel.textContent =
+                "UNKNOWN CODE";
+
         }
 
-        form.addEventListener("submit", function (event) {
+    }
+
+
+    form.addEventListener(
+        "submit",
+        function(event) {
+
             event.preventDefault();
-            const code = input.value.trim().toUpperCase();
+
+
+            const code =
+                input.value
+                    .trim()
+                    .toUpperCase();
+
 
             if (!code) {
-                showError("Please enter a product code.");
+
+                showError(
+                    "Please enter a product code."
+                );
+
                 return;
+
             }
 
-            input.value = code;
-            verifyCode(code);
-        });
 
-        const initialCode = getCodeFromUrl();
+            input.value =
+                code;
 
-        if (initialCode) {
-            input.value = initialCode;
-            verifyCode(initialCode);
+
+            processVerification(
+                code
+            );
+
         }
-    </script>
+    );
+
+
+    locationRetry.addEventListener(
+        "click",
+        function() {
+
+            if (!currentCode) {
+
+                return;
+
+            }
+
+
+            verificationStarted =
+                false;
+
+            clearError();
+
+            processVerification(
+                currentCode
+            );
+
+        }
+    );
+
+
+    const initialCode =
+        getCodeFromUrl();
+
+
+    if (initialCode) {
+
+        input.value =
+            initialCode;
+
+        processVerification(
+            initialCode
+        );
+
+    }
+
+</script>
+
 </body>
 </html>
