@@ -9,6 +9,10 @@ let flags = [];
 let users = [];
 let currentUser = null;
 
+let investigationMap = null;
+let investigationMapMarkers = [];
+let investigationMapLines = [];
+
 
 /* =========================
    AUTHENTICATION
@@ -93,7 +97,6 @@ async function loadCurrentUser() {
         saveUser(user);
 
         return user;
-
     } catch (error) {
         console.error(
             "Error loading current user:",
@@ -101,6 +104,7 @@ async function loadCurrentUser() {
         );
 
         clearAuthentication();
+
         return null;
     }
 }
@@ -437,7 +441,6 @@ async function loadDashboard() {
         ]);
 
         updateSummary();
-
         renderProducts();
         renderScans();
         renderFlags();
@@ -449,7 +452,6 @@ async function loadDashboard() {
         if (hasRole("super_admin")) {
             await loadUsers();
         }
-
     } catch (error) {
         console.error(
             "Error loading dashboard:",
@@ -544,7 +546,7 @@ function renderProducts() {
                         <button
                             type="button"
                             class="secondary-button"
-                            onclick="openProductQr('${productCode}')"
+                            onclick="openProductQr('${escapeHtmlAttribute(productCode)}')"
                         >
                             Generate QR
                         </button>
@@ -552,7 +554,7 @@ function renderProducts() {
                         <button
                             type="button"
                             class="secondary-button"
-                            onclick="downloadProductQr('${productCode}')"
+                            onclick="downloadProductQr('${escapeHtmlAttribute(productCode)}')"
                         >
                             Download QR
                         </button>
@@ -658,7 +660,6 @@ async function openProductQr(productCode) {
             },
             60000
         );
-
     } catch (error) {
         console.error(
             "QR generation error:",
@@ -695,7 +696,6 @@ async function downloadProductQr(productCode) {
                 `${API_BASE}/products/${encodeURIComponent(productCode)}/qr`,
                 {
                     method: "GET",
-
                     headers: {
                         Authorization:
                             `Bearer ${token}`
@@ -763,7 +763,6 @@ async function downloadProductQr(productCode) {
             },
             5000
         );
-
     } catch (error) {
         console.error(
             "QR download error:",
@@ -837,16 +836,21 @@ function renderScans() {
     scans.forEach(
         (scan) => {
             const row =
-                document.createElement(
-                    "tr"
-                );
+                document.createElement("tr");
 
             const flagged =
                 Boolean(scan.flagged);
 
+            const locationHtml =
+                formatLocationWithMap(
+                    scan.latitude,
+                    scan.longitude,
+                    scan.location_accuracy
+                );
+
             row.innerHTML = `
                 <td>
-                    ${scan.id}
+                    ${escapeHtml(scan.id)}
                 </td>
 
                 <td>
@@ -862,10 +866,7 @@ function renderScans() {
                 </td>
 
                 <td>
-                    ${formatLocation(
-                        scan.latitude,
-                        scan.longitude
-                    )}
+                    ${locationHtml}
                 </td>
 
                 <td>
@@ -895,9 +896,7 @@ function renderScans() {
                 </td>
             `;
 
-            tableBody.appendChild(
-                row
-            );
+            tableBody.appendChild(row);
         }
     );
 }
@@ -962,9 +961,7 @@ function renderFlags() {
     flags.forEach(
         (scan) => {
             const row =
-                document.createElement(
-                    "tr"
-                );
+                document.createElement("tr");
 
             const reviewStatus =
                 scan.review_status ||
@@ -993,9 +990,16 @@ function renderFlags() {
                     "investigator"
                 );
 
+            const locationHtml =
+                formatLocationWithMap(
+                    scan.latitude,
+                    scan.longitude,
+                    scan.location_accuracy
+                );
+
             row.innerHTML = `
                 <td>
-                    ${scan.id}
+                    ${escapeHtml(scan.id)}
                 </td>
 
                 <td>
@@ -1011,10 +1015,7 @@ function renderFlags() {
                 </td>
 
                 <td>
-                    ${formatLocation(
-                        scan.latitude,
-                        scan.longitude
-                    )}
+                    ${locationHtml}
                 </td>
 
                 <td>
@@ -1050,7 +1051,7 @@ function renderFlags() {
                                 <button
                                     type="button"
                                     class="review-button"
-                                    data-scan-id="${scan.id}"
+                                    data-scan-id="${escapeHtmlAttribute(scan.id)}"
                                 >
                                     Review
                                 </button>
@@ -1070,16 +1071,12 @@ function renderFlags() {
                 </td>
             `;
 
-            tableBody.appendChild(
-                row
-            );
+            tableBody.appendChild(row);
         }
     );
 
     document
-        .querySelectorAll(
-            ".review-button"
-        )
+        .querySelectorAll(".review-button")
         .forEach(
             (button) => {
                 button.addEventListener(
@@ -1153,9 +1150,7 @@ function updateSummary() {
    ALERT BANNER
 ========================= */
 
-function updateAlertBanner(
-    hasFlags
-) {
+function updateAlertBanner(hasFlags) {
     const banner =
         document.getElementById(
             "alert-banner"
@@ -1199,7 +1194,6 @@ function updateAlertBanner(
                         : "s"
                 } require review.`;
         }
-
     } else {
         banner.classList.add(
             "alert-safe"
@@ -1219,8 +1213,1175 @@ function updateAlertBanner(
 
 
 /* =========================
-   INVESTIGATION
+   INVESTIGATION MAP
 ========================= */
+
+function ensureLeafletLoaded() {
+    return new Promise(
+        (resolve, reject) => {
+            if (
+                typeof window.L !==
+                "undefined"
+            ) {
+                resolve();
+                return;
+            }
+
+            const existingScript =
+                document.querySelector(
+                    'script[data-trusttrace-leaflet]'
+                );
+
+            if (existingScript) {
+                existingScript.addEventListener(
+                    "load",
+                    () => resolve()
+                );
+
+                existingScript.addEventListener(
+                    "error",
+                    () =>
+                        reject(
+                            new Error(
+                                "Unable to load map library."
+                            )
+                        )
+                );
+
+                return;
+            }
+
+            if (
+                !document.querySelector(
+                    'link[data-trusttrace-leaflet]'
+                )
+            ) {
+                const link =
+                    document.createElement("link");
+
+                link.rel = "stylesheet";
+
+                link.href =
+                    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+
+                link.integrity =
+                    "sha256-p4NxAoJBhIINfQ3R5v7nXnJ6k2hQfXf5F6XQJ2h7rM=";
+
+                link.crossOrigin = "";
+
+                link.dataset.trusttraceLeaflet =
+                    "true";
+
+                document.head.appendChild(
+                    link
+                );
+            }
+
+            const script =
+                document.createElement(
+                    "script"
+                );
+
+            script.src =
+                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+
+            script.dataset.trusttraceLeaflet =
+                "true";
+
+            script.onload =
+                () => resolve();
+
+            script.onerror =
+                () =>
+                    reject(
+                        new Error(
+                            "Unable to load map library."
+                        )
+                    );
+
+            document.head.appendChild(
+                script
+            );
+        }
+    );
+}
+
+function toFiniteCoordinate(value) {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return null;
+    }
+
+    const number =
+        Number(value);
+
+    if (!Number.isFinite(number)) {
+        return null;
+    }
+
+    return number;
+}
+
+function hasValidCoordinates(scan) {
+    const latitude =
+        toFiniteCoordinate(
+            scan?.latitude
+        );
+
+    const longitude =
+        toFiniteCoordinate(
+            scan?.longitude
+        );
+
+    return (
+        latitude !== null &&
+        longitude !== null &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+    );
+}
+
+function calculateDistanceKm(
+    latitude1,
+    longitude1,
+    latitude2,
+    longitude2
+) {
+    const lat1 =
+        Number(latitude1);
+
+    const lon1 =
+        Number(longitude1);
+
+    const lat2 =
+        Number(latitude2);
+
+    const lon2 =
+        Number(longitude2);
+
+    if (
+        !Number.isFinite(lat1) ||
+        !Number.isFinite(lon1) ||
+        !Number.isFinite(lat2) ||
+        !Number.isFinite(lon2)
+    ) {
+        return null;
+    }
+
+    const earthRadiusKm =
+        6371;
+
+    const latDifference =
+        (
+            (lat2 - lat1) *
+            Math.PI
+        ) / 180;
+
+    const lonDifference =
+        (
+            (lon2 - lon1) *
+            Math.PI
+        ) / 180;
+
+    const a =
+        Math.sin(
+            latDifference / 2
+        ) ** 2 +
+        Math.cos(
+            lat1 * Math.PI / 180
+        ) *
+        Math.cos(
+            lat2 * Math.PI / 180
+        ) *
+        Math.sin(
+            lonDifference / 2
+        ) ** 2;
+
+    const c =
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+    return earthRadiusKm * c;
+}
+
+function getPreviousScan(currentScan) {
+    if (!currentScan) {
+        return null;
+    }
+
+    const sameProductScans =
+        scans
+            .filter(
+                (scan) =>
+                    String(scan.code) ===
+                    String(currentScan.code) &&
+                    Number(scan.id) !==
+                    Number(currentScan.id)
+            )
+            .filter(
+                (scan) =>
+                    hasValidCoordinates(scan)
+            )
+            .filter(
+                (scan) => {
+                    const currentTime =
+                        new Date(
+                            currentScan.timestamp
+                        ).getTime();
+
+                    const scanTime =
+                        new Date(
+                            scan.timestamp
+                        ).getTime();
+
+                    return (
+                        Number.isFinite(
+                            currentTime
+                        ) &&
+                        Number.isFinite(
+                            scanTime
+                        ) &&
+                        scanTime <
+                            currentTime
+                    );
+                }
+            )
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.timestamp
+                    ).getTime() -
+                    new Date(
+                        a.timestamp
+                    ).getTime()
+            );
+
+    return (
+        sameProductScans[0] ||
+        null
+    );
+}
+
+function getInvestigationMetrics(
+    currentScan,
+    previousScan
+) {
+    if (
+        !currentScan ||
+        !previousScan
+    ) {
+        return {
+            distanceKm: null,
+            elapsedMinutes: null,
+            speedKmh: null
+        };
+    }
+
+    const distanceKm =
+        calculateDistanceKm(
+            previousScan.latitude,
+            previousScan.longitude,
+            currentScan.latitude,
+            currentScan.longitude
+        );
+
+    const currentTime =
+        new Date(
+            currentScan.timestamp
+        ).getTime();
+
+    const previousTime =
+        new Date(
+            previousScan.timestamp
+        ).getTime();
+
+    if (
+        !Number.isFinite(
+            currentTime
+        ) ||
+        !Number.isFinite(
+            previousTime
+        ) ||
+        currentTime <=
+            previousTime
+    ) {
+        return {
+            distanceKm,
+            elapsedMinutes: null,
+            speedKmh: null
+        };
+    }
+
+    const elapsedMinutes =
+        (
+            currentTime -
+            previousTime
+        ) / 60000;
+
+    const speedKmh =
+        elapsedMinutes > 0 &&
+        distanceKm !== null
+            ? distanceKm /
+              (elapsedMinutes / 60)
+            : null;
+
+    return {
+        distanceKm,
+        elapsedMinutes,
+        speedKmh
+    };
+}
+
+function formatDistance(
+    distanceKm
+) {
+    if (
+        distanceKm === null ||
+        !Number.isFinite(distanceKm)
+    ) {
+        return "Not available";
+    }
+
+    if (distanceKm < 1) {
+        return `${Math.round(
+            distanceKm * 1000
+        )} m`;
+    }
+
+    return `${distanceKm.toFixed(
+        2
+    )} km`;
+}
+
+function formatElapsedTime(
+    minutes
+) {
+    if (
+        minutes === null ||
+        !Number.isFinite(minutes)
+    ) {
+        return "Not available";
+    }
+
+    if (minutes < 1) {
+        return `${Math.round(
+            minutes * 60
+        )} sec`;
+    }
+
+    if (minutes < 60) {
+        return `${minutes.toFixed(
+            1
+        )} min`;
+    }
+
+    const hours =
+        Math.floor(
+            minutes / 60
+        );
+
+    const remainingMinutes =
+        Math.round(
+            minutes % 60
+        );
+
+    return `${hours}h ${remainingMinutes}m`;
+}
+
+function formatSpeed(
+    speedKmh
+) {
+    if (
+        speedKmh === null ||
+        !Number.isFinite(speedKmh)
+    ) {
+        return "Not available";
+    }
+
+    return `${speedKmh.toFixed(
+        1
+    )} km/h`;
+}
+
+function getMovementRisk(
+    scan,
+    metrics
+) {
+    const reason =
+        (
+            scan.flag_reason ||
+            ""
+        ).toLowerCase();
+
+    if (
+        reason.includes(
+            "impossible travel"
+        )
+    ) {
+        return {
+            level: "HIGH",
+            className: "review-high"
+        };
+    }
+
+    if (
+        metrics.speedKmh !== null &&
+        metrics.speedKmh >= 900
+    ) {
+        return {
+            level: "HIGH",
+            className: "review-high"
+        };
+    }
+
+    if (
+        reason.includes(
+            "high scan frequency"
+        )
+    ) {
+        return {
+            level: "MEDIUM",
+            className: "review-medium"
+        };
+    }
+
+    if (
+        reason.includes(
+            "invalid product code"
+        )
+    ) {
+        return {
+            level: "MEDIUM",
+            className: "review-medium"
+        };
+    }
+
+    return {
+        level: "LOW",
+        className: "review-low"
+    };
+}
+
+function injectInvestigationMapStyles() {
+    if (
+        document.getElementById(
+            "trusttrace-investigation-map-styles"
+        )
+    ) {
+        return;
+    }
+
+    const style =
+        document.createElement("style");
+
+    style.id =
+        "trusttrace-investigation-map-styles";
+
+    style.textContent = `
+        .trusttrace-investigation-map {
+            width: 100%;
+            height: 380px;
+            min-height: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .trusttrace-map-section {
+            margin-top: 22px;
+        }
+
+        .trusttrace-map-title {
+            margin-bottom: 8px;
+        }
+
+        .trusttrace-map-subtitle {
+            margin-top: 0;
+            opacity: 0.75;
+            font-size: 0.9rem;
+        }
+
+        .trusttrace-metric-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(150px, 1fr)
+                );
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .trusttrace-metric {
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(
+                255,
+                255,
+                255,
+                0.04
+            );
+            border: 1px solid rgba(
+                255,
+                255,
+                255,
+                0.08
+            );
+        }
+
+        .trusttrace-metric span {
+            display: block;
+            font-size: 0.78rem;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .trusttrace-metric strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .trusttrace-activity-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+        }
+
+        .trusttrace-activity-table th,
+        .trusttrace-activity-table td {
+            padding: 9px 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(
+                255,
+                255,
+                255,
+                0.08
+            );
+            font-size: 0.85rem;
+        }
+
+        .trusttrace-map-fallback {
+            padding: 18px;
+            border-radius: 10px;
+            background: rgba(
+                255,
+                255,
+                255,
+                0.04
+            );
+            margin-top: 18px;
+        }
+
+        .trusttrace-map-fallback a {
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 700px) {
+            .trusttrace-investigation-map {
+                height: 300px;
+            }
+
+            .trusttrace-activity-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+async function renderInvestigationMap(
+    currentScan,
+    previousScan
+) {
+    const mapContainer =
+        document.getElementById(
+            "investigation-map"
+        );
+
+    if (!mapContainer) {
+        return;
+    }
+
+    injectInvestigationMapStyles();
+
+    if (
+        !hasValidCoordinates(
+            currentScan
+        )
+    ) {
+        mapContainer.innerHTML = `
+            <div class="trusttrace-map-fallback">
+                <strong>
+                    Map unavailable
+                </strong>
+
+                <p>
+                    This scan does not contain
+                    valid geographic coordinates.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    try {
+        await ensureLeafletLoaded();
+
+        if (
+            typeof window.L ===
+            "undefined"
+        ) {
+            throw new Error(
+                "Leaflet is unavailable."
+            );
+        }
+
+        if (investigationMap) {
+            investigationMap.remove();
+            investigationMap = null;
+        }
+
+        investigationMapMarkers = [];
+        investigationMapLines = [];
+
+        mapContainer.innerHTML = "";
+
+        investigationMap =
+            L.map(
+                mapContainer,
+                {
+                    scrollWheelZoom: true
+                }
+            );
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 19,
+                attribution:
+                    '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(
+            investigationMap
+        );
+
+        const currentLat =
+            Number(
+                currentScan.latitude
+            );
+
+        const currentLng =
+            Number(
+                currentScan.longitude
+            );
+
+        const currentMarker =
+            L.marker([
+                currentLat,
+                currentLng
+            ])
+                .addTo(
+                    investigationMap
+                )
+                .bindPopup(
+                    `
+                        <strong>
+                            Current Scan
+                        </strong>
+                        <br>
+                        Product:
+                        ${escapeHtml(
+                            currentScan.code
+                        )}
+                        <br>
+                        Scan ID:
+                        ${escapeHtml(
+                            currentScan.id
+                        )}
+                        <br>
+                        Accuracy:
+                        ${escapeHtml(
+                            formatAccuracy(
+                                currentScan.location_accuracy
+                            )
+                        )}
+                    `
+                );
+
+        investigationMapMarkers.push(
+            currentMarker
+        );
+
+        if (
+            currentScan.location_accuracy !==
+                null &&
+            currentScan.location_accuracy !==
+                undefined &&
+            Number.isFinite(
+                Number(
+                    currentScan.location_accuracy
+                )
+            )
+        ) {
+            const accuracyCircle =
+                L.circle(
+                    [
+                        currentLat,
+                        currentLng
+                    ],
+                    {
+                        radius:
+                            Number(
+                                currentScan.location_accuracy
+                            ),
+                        weight: 1,
+                        fillOpacity: 0.08
+                    }
+                )
+                    .addTo(
+                        investigationMap
+                    )
+                    .bindPopup(
+                        `
+                            Location accuracy:
+                            ${escapeHtml(
+                                formatAccuracy(
+                                    currentScan.location_accuracy
+                                )
+                            )}
+                        `
+                    );
+
+            investigationMapMarkers.push(
+                accuracyCircle
+            );
+        }
+
+        const boundsPoints = [
+            [
+                currentLat,
+                currentLng
+            ]
+        ];
+
+        if (
+            previousScan &&
+            hasValidCoordinates(
+                previousScan
+            )
+        ) {
+            const previousLat =
+                Number(
+                    previousScan.latitude
+                );
+
+            const previousLng =
+                Number(
+                    previousScan.longitude
+                );
+
+            const previousMarker =
+                L.marker(
+                    [
+                        previousLat,
+                        previousLng
+                    ]
+                )
+                    .addTo(
+                        investigationMap
+                    )
+                    .bindPopup(
+                        `
+                            <strong>
+                                Previous Scan
+                            </strong>
+                            <br>
+                            Product:
+                            ${escapeHtml(
+                                previousScan.code
+                            )}
+                            <br>
+                            Scan ID:
+                            ${escapeHtml(
+                                previousScan.id
+                            )}
+                            <br>
+                            Time:
+                            ${escapeHtml(
+                                formatDate(
+                                    previousScan.timestamp
+                                )
+                            )}
+                            <br>
+                            Accuracy:
+                            ${escapeHtml(
+                                formatAccuracy(
+                                    previousScan.location_accuracy
+                                )
+                            )}
+                        `
+                    );
+
+            investigationMapMarkers.push(
+                previousMarker
+            );
+
+            boundsPoints.push([
+                previousLat,
+                previousLng
+            ]);
+
+            const movementLine =
+                L.polyline(
+                    [
+                        [
+                            previousLat,
+                            previousLng
+                        ],
+                        [
+                            currentLat,
+                            currentLng
+                        ]
+                    ],
+                    {
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray:
+                            "8, 8"
+                    }
+                )
+                    .addTo(
+                        investigationMap
+                    );
+
+            investigationMapLines.push(
+                movementLine
+            );
+        }
+
+        if (
+            boundsPoints.length >
+            1
+        ) {
+            investigationMap.fitBounds(
+                boundsPoints,
+                {
+                    padding: [
+                        40,
+                        40
+                    ]
+                }
+            );
+        } else {
+            investigationMap.setView(
+                [
+                    currentLat,
+                    currentLng
+                ],
+                15
+            );
+        }
+
+        setTimeout(
+            () => {
+                if (investigationMap) {
+                    investigationMap.invalidateSize();
+                }
+            },
+            200
+        );
+    } catch (error) {
+        console.error(
+            "Investigation map error:",
+            error
+        );
+
+        const mapUrl =
+            getMapUrl(
+                currentScan.latitude,
+                currentScan.longitude
+            );
+
+        mapContainer.innerHTML = `
+            <div class="trusttrace-map-fallback">
+                <strong>
+                    Interactive map could not be loaded.
+                </strong>
+
+                <p>
+                    The scan location is still available.
+                </p>
+
+                ${
+                    mapUrl
+                        ? `
+                            <a
+                                href="${escapeHtmlAttribute(mapUrl)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Open location in Google Maps
+                            </a>
+                        `
+                        : ""
+                }
+            </div>
+        `;
+    }
+}
+
+function renderRecentActivity(
+    currentScan
+) {
+    const container =
+        document.getElementById(
+            "investigation-recent-activity"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const relatedScans =
+        scans
+            .filter(
+                (scan) =>
+                    String(scan.code) ===
+                    String(currentScan.code)
+            )
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.timestamp
+                    ).getTime() -
+                    new Date(
+                        a.timestamp
+                    ).getTime()
+            )
+            .slice(0, 8);
+
+    if (!relatedScans.length) {
+        container.innerHTML = `
+            <p>
+                No recent activity found for this product.
+            </p>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = `
+        <table class="trusttrace-activity-table">
+            <thead>
+                <tr>
+                    <th>Scan</th>
+                    <th>Time</th>
+                    <th>Location</th>
+                    <th>Accuracy</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${relatedScans
+                    .map(
+                        (scan) => `
+                            <tr>
+                                <td>
+                                    #${escapeHtml(
+                                        scan.id
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        formatDate(
+                                            scan.timestamp
+                                        )
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        formatLocation(
+                                            scan.latitude,
+                                            scan.longitude
+                                        )
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        formatAccuracy(
+                                            scan.location_accuracy
+                                        )
+                                    )}
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="status-badge ${
+                                            scan.flagged
+                                                ? "flagged"
+                                                : "safe"
+                                        }"
+                                    >
+                                        ${
+                                            scan.flagged
+                                                ? "Flagged"
+                                                : "Safe"
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        `
+                    )
+                    .join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function buildInvestigationMapSection(
+    currentScan,
+    previousScan
+) {
+    return `
+        <div class="trusttrace-map-section">
+
+            <div class="trusttrace-map-title">
+                <h3>
+                    Investigation Map
+                </h3>
+
+                <p class="trusttrace-map-subtitle">
+                    Geographic relationship between
+                    this scan and the previous scan
+                    of the same product.
+                </p>
+            </div>
+
+            <div
+                id="investigation-map"
+                class="trusttrace-investigation-map"
+            ></div>
+        </div>
+    `;
+}
+
+function buildInvestigationMetrics(
+    currentScan,
+    previousScan,
+    metrics,
+    risk
+) {
+    return `
+        <div class="trusttrace-metric-grid">
+
+            <div class="trusttrace-metric">
+                <span>
+                    Previous Scan
+                </span>
+
+                <strong>
+                    ${
+                        previousScan
+                            ? `#${escapeHtml(
+                                previousScan.id
+                            )}`
+                            : "None"
+                    }
+                </strong>
+            </div>
+
+            <div class="trusttrace-metric">
+                <span>
+                    Distance
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        formatDistance(
+                            metrics.distanceKm
+                        )
+                    )}
+                </strong>
+            </div>
+
+            <div class="trusttrace-metric">
+                <span>
+                    Elapsed Time
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        formatElapsedTime(
+                            metrics.elapsedMinutes
+                        )
+                    )}
+                </strong>
+            </div>
+
+            <div class="trusttrace-metric">
+                <span>
+                    Movement Speed
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        formatSpeed(
+                            metrics.speedKmh
+                        )
+                    )}
+                </strong>
+            </div>
+
+            <div class="trusttrace-metric">
+                <span>
+                    Current Accuracy
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        formatAccuracy(
+                            currentScan.location_accuracy
+                        )
+                    )}
+                </strong>
+            </div>
+
+            <div class="trusttrace-metric">
+                <span>
+                    Risk Level
+                </span>
+
+                <strong
+                    class="${escapeHtml(
+                        risk.className
+                    )}"
+                >
+                    ${escapeHtml(
+                        risk.level
+                    )}
+                </strong>
+            </div>
+
+        </div>
+    `;
+}
 
 function openInvestigation(
     scanId
@@ -1271,19 +2432,45 @@ function openInvestigation(
         return;
     }
 
+    const previousScan =
+        getPreviousScan(scan);
+
+    const metrics =
+        getInvestigationMetrics(
+            scan,
+            previousScan
+        );
+
+    const risk =
+        getMovementRisk(
+            scan,
+            metrics
+        );
+
+    const locationHtml =
+        formatLocationWithMap(
+            scan.latitude,
+            scan.longitude,
+            scan.location_accuracy
+        );
+
     content.innerHTML = `
         <div class="investigation-grid">
 
             <div class="investigation-item">
-                <span>Scan ID</span>
+                <span>
+                    Scan ID
+                </span>
 
                 <strong>
-                    ${scan.id}
+                    ${escapeHtml(scan.id)}
                 </strong>
             </div>
 
             <div class="investigation-item">
-                <span>Product Code</span>
+                <span>
+                    Product Code
+                </span>
 
                 <strong>
                     ${escapeHtml(
@@ -1293,7 +2480,9 @@ function openInvestigation(
             </div>
 
             <div class="investigation-item">
-                <span>Timestamp</span>
+                <span>
+                    Timestamp
+                </span>
 
                 <strong>
                     ${formatDate(
@@ -1303,18 +2492,33 @@ function openInvestigation(
             </div>
 
             <div class="investigation-item">
-                <span>Location</span>
+                <span>
+                    Location
+                </span>
 
                 <strong>
-                    ${formatLocation(
-                        scan.latitude,
-                        scan.longitude
+                    ${locationHtml}
+                </strong>
+            </div>
+
+            <div class="investigation-item">
+                <span>
+                    Location Accuracy
+                </span>
+
+                <strong>
+                    ${escapeHtml(
+                        formatAccuracy(
+                            scan.location_accuracy
+                        )
                     )}
                 </strong>
             </div>
 
             <div class="investigation-item">
-                <span>Current Review Status</span>
+                <span>
+                    Current Review Status
+                </span>
 
                 <strong>
                     ${escapeHtml(
@@ -1325,7 +2529,9 @@ function openInvestigation(
             </div>
 
             <div class="investigation-reason">
-                <span>Detection Reason</span>
+                <span>
+                    Detection Reason
+                </span>
 
                 <p>
                     ${
@@ -1338,17 +2544,53 @@ function openInvestigation(
                 </p>
             </div>
 
-            <div class="investigation-note">
-                <label for="review-note">
-                    Investigation Note
-                </label>
+            ${buildInvestigationMetrics(
+                scan,
+                previousScan,
+                metrics,
+                risk
+            )}
 
-                <textarea
-                    id="review-note"
-                    placeholder="Add a review note..."
-                ></textarea>
-            </div>
+        </div>
 
+        ${buildInvestigationMapSection(
+            scan,
+            previousScan
+        )}
+
+        <div
+            style="
+                margin-top: 22px;
+            "
+        >
+            <h3>
+                Recent Product Activity
+            </h3>
+
+            <p
+                style="
+                    opacity: 0.75;
+                    font-size: 0.9rem;
+                "
+            >
+                Recent scan history for
+                ${escapeHtml(scan.code)}.
+            </p>
+
+            <div
+                id="investigation-recent-activity"
+            ></div>
+        </div>
+
+        <div class="investigation-note">
+            <label for="review-note">
+                Investigation Note
+            </label>
+
+            <textarea
+                id="review-note"
+                placeholder="Add a review note..."
+            ></textarea>
         </div>
 
         <div class="investigation-actions">
@@ -1359,7 +2601,7 @@ function openInvestigation(
                     type="button"
                     class="primary-button"
                     onclick="submitReview(
-                        ${scan.id},
+                        ${Number(scan.id)},
                         'REVIEWED'
                     )"
                 >
@@ -1370,7 +2612,7 @@ function openInvestigation(
                     type="button"
                     class="secondary-button"
                     onclick="submitReview(
-                        ${scan.id},
+                        ${Number(scan.id)},
                         'DISMISSED'
                     )"
                 >
@@ -1398,6 +2640,17 @@ function openInvestigation(
         behavior: "smooth",
         block: "start"
     });
+
+    renderRecentActivity(scan);
+
+    requestAnimationFrame(
+        async () => {
+            await renderInvestigationMap(
+                scan,
+                previousScan
+            );
+        }
+    );
 }
 
 function closeInvestigation() {
@@ -1409,6 +2662,14 @@ function closeInvestigation() {
     if (!panel) {
         return;
     }
+
+    if (investigationMap) {
+        investigationMap.remove();
+        investigationMap = null;
+    }
+
+    investigationMapMarkers = [];
+    investigationMapLines = [];
 
     panel.classList.add(
         "hidden"
@@ -1457,18 +2718,15 @@ async function submitReview(
                 `${API_BASE}/scan/${scanId}/review`,
                 {
                     method: "PATCH",
-
                     headers:
                         authHeaders({
                             "Content-Type":
                                 "application/json"
                         }),
-
                     body:
                         JSON.stringify({
                             review_status:
                                 reviewStatus,
-
                             review_note:
                                 reviewNote ||
                                 null
@@ -1477,7 +2735,8 @@ async function submitReview(
             );
 
         if (
-            response.status === 401
+            response.status ===
+            401
         ) {
             handleUnauthorized();
             return;
@@ -1511,7 +2770,6 @@ async function submitReview(
         openInvestigation(
             scanId
         );
-
     } catch (error) {
         console.error(
             "Error submitting review:",
@@ -1579,20 +2837,16 @@ async function handleProductSubmit(
                 `${API_BASE}/products/`,
                 {
                     method: "POST",
-
                     headers:
                         authHeaders({
                             "Content-Type":
                                 "application/json"
                         }),
-
                     body:
                         JSON.stringify({
                             code,
-
                             product_name:
                                 productName,
-
                             batch_id:
                                 batchId
                         })
@@ -1600,7 +2854,8 @@ async function handleProductSubmit(
             );
 
         if (
-            response.status === 401
+            response.status ===
+            401
         ) {
             handleUnauthorized();
             return;
@@ -1634,8 +2889,8 @@ async function handleProductSubmit(
         await loadProducts();
 
         updateSummary();
-        renderProducts();
 
+        renderProducts();
     } catch (error) {
         console.error(
             "Error registering product:",
@@ -1698,10 +2953,53 @@ async function handleScanSubmit(
             "longitude"
         ).value;
 
+    const accuracyElement =
+        document.getElementById(
+            "location-accuracy"
+        );
+
+    const locationAccuracy =
+        accuracyElement
+            ? accuracyElement.value
+            : "";
+
     const message =
         document.getElementById(
             "scan-message"
         );
+
+    const scanPayload = {
+        code,
+
+        timestamp,
+
+        latitude:
+            latitude !== ""
+                ? Number(latitude)
+                : null,
+
+        longitude:
+            longitude !== ""
+                ? Number(longitude)
+                : null
+    };
+
+    /*
+     * Only send location_accuracy
+     * when a value is actually available.
+     *
+     * This keeps compatibility with
+     * older scan forms.
+     */
+
+    if (
+        locationAccuracy !== ""
+    ) {
+        scanPayload.location_accuracy =
+            Number(
+                locationAccuracy
+            );
+    }
 
     try {
         const response =
@@ -1709,34 +3007,21 @@ async function handleScanSubmit(
                 `${API_BASE}/scan/`,
                 {
                     method: "POST",
-
                     headers:
                         authHeaders({
                             "Content-Type":
                                 "application/json"
                         }),
-
                     body:
-                        JSON.stringify({
-                            code,
-
-                            timestamp,
-
-                            latitude:
-                                Number(
-                                    latitude
-                                ),
-
-                            longitude:
-                                Number(
-                                    longitude
-                                )
-                        })
+                        JSON.stringify(
+                            scanPayload
+                        )
                 }
             );
 
         if (
-            response.status === 401
+            response.status ===
+            401
         ) {
             handleUnauthorized();
             return;
@@ -1772,7 +3057,6 @@ async function handleScanSubmit(
         event.target.reset();
 
         await loadDashboard();
-
     } catch (error) {
         console.error(
             "Error submitting scan:",
@@ -1814,12 +3098,18 @@ async function loadUsers() {
             }
         );
 
-    if (response.status === 401) {
+    if (
+        response.status ===
+        401
+    ) {
         handleUnauthorized();
         return;
     }
 
-    if (response.status === 403) {
+    if (
+        response.status ===
+        403
+    ) {
         console.error(
             "User management access denied."
         );
@@ -1869,9 +3159,7 @@ function renderUsers() {
     users.forEach(
         (user) => {
             const row =
-                document.createElement(
-                    "tr"
-                );
+                document.createElement("tr");
 
             const statusClass =
                 user.is_active
@@ -1885,7 +3173,9 @@ function renderUsers() {
 
             row.innerHTML = `
                 <td>
-                    ${user.id}
+                    ${escapeHtml(
+                        user.id
+                    )}
                 </td>
 
                 <td>
@@ -1911,9 +3201,7 @@ function renderUsers() {
                 </td>
             `;
 
-            tableBody.appendChild(
-                row
-            );
+            tableBody.appendChild(row);
         }
     );
 }
@@ -1970,13 +3258,11 @@ async function handleUserSubmit(
                 `${API_BASE}/auth/register`,
                 {
                     method: "POST",
-
                     headers:
                         authHeaders({
                             "Content-Type":
                                 "application/json"
                         }),
-
                     body:
                         JSON.stringify({
                             email,
@@ -1987,7 +3273,8 @@ async function handleUserSubmit(
             );
 
         if (
-            response.status === 401
+            response.status ===
+            401
         ) {
             handleUnauthorized();
             return;
@@ -2019,7 +3306,6 @@ async function handleUserSubmit(
         event.target.reset();
 
         await loadUsers();
-
     } catch (error) {
         console.error(
             "Error creating user:",
@@ -2121,7 +3407,7 @@ function getRiskText(
 
 
 /* =========================
-   FORMATTING
+   LOCATION FORMATTING
 ========================= */
 
 function formatLocation(
@@ -2132,13 +3418,205 @@ function formatLocation(
         latitude === null ||
         latitude === undefined ||
         longitude === null ||
-        longitude === undefined
+        longitude === undefined ||
+        latitude === "" ||
+        longitude === ""
     ) {
         return "Unknown";
     }
 
-    return `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}`;
+    const lat =
+        Number(latitude);
+
+    const lng =
+        Number(longitude);
+
+    if (
+        Number.isNaN(lat) ||
+        Number.isNaN(lng)
+    ) {
+        return "Unknown";
+    }
+
+    return `${lat.toFixed(
+        4
+    )}, ${lng.toFixed(4)}`;
 }
+
+function formatAccuracy(
+    accuracy
+) {
+    if (
+        accuracy === null ||
+        accuracy === undefined ||
+        accuracy === ""
+    ) {
+        return "Not available";
+    }
+
+    const numericAccuracy =
+        Number(accuracy);
+
+    if (
+        Number.isNaN(
+            numericAccuracy
+        ) ||
+        numericAccuracy < 0
+    ) {
+        return "Not available";
+    }
+
+    if (numericAccuracy < 1) {
+        return `±${numericAccuracy.toFixed(
+            2
+        )} m`;
+    }
+
+    if (numericAccuracy < 10) {
+        return `±${numericAccuracy.toFixed(
+            1
+        )} m`;
+    }
+
+    return `±${Math.round(
+        numericAccuracy
+    )} m`;
+}
+
+function getMapUrl(
+    latitude,
+    longitude
+) {
+    if (
+        latitude === null ||
+        latitude === undefined ||
+        longitude === null ||
+        longitude === undefined ||
+        latitude === "" ||
+        longitude === ""
+    ) {
+        return null;
+    }
+
+    const lat =
+        Number(latitude);
+
+    const lng =
+        Number(longitude);
+
+    if (
+        Number.isNaN(lat) ||
+        Number.isNaN(lng)
+    ) {
+        return null;
+    }
+
+    return `https://www.google.com/maps?q=${encodeURIComponent(
+        `${lat},${lng}`
+    )}`;
+}
+
+function formatLocationWithMap(
+    latitude,
+    longitude,
+    accuracy = null
+) {
+    const location =
+        formatLocation(
+            latitude,
+            longitude
+        );
+
+    if (location === "Unknown") {
+        return `
+            <div>
+                <div>
+                    Unknown
+                </div>
+
+                ${
+                    accuracy !== null &&
+                    accuracy !== undefined &&
+                    accuracy !== ""
+                        ? `
+                            <small>
+                                Accuracy:
+                                ${escapeHtml(
+                                    formatAccuracy(
+                                        accuracy
+                                    )
+                                )}
+                            </small>
+                        `
+                        : ""
+                }
+            </div>
+        `;
+    }
+
+    const mapUrl =
+        getMapUrl(
+            latitude,
+            longitude
+        );
+
+    return `
+        <div
+            style="
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            "
+        >
+            <span>
+                ${escapeHtml(location)}
+            </span>
+
+            ${
+                accuracy !== null &&
+                accuracy !== undefined &&
+                accuracy !== ""
+                    ? `
+                        <small>
+                            Accuracy:
+                            ${escapeHtml(
+                                formatAccuracy(
+                                    accuracy
+                                )
+                            )}
+                        </small>
+                    `
+                    : ""
+            }
+
+            ${
+                mapUrl
+                    ? `
+                        <a
+                            href="${escapeHtmlAttribute(
+                                mapUrl
+                            )}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="
+                                display: inline-block;
+                                margin-top: 2px;
+                                font-size: 0.85em;
+                            "
+                        >
+                            Open map
+                        </a>
+                    `
+                    : ""
+            }
+        </div>
+    `;
+}
+
+
+/* =========================
+   DATE FORMATTING
+========================= */
 
 function formatDate(
     timestamp
@@ -2197,4 +3675,10 @@ function escapeHtml(
             /'/g,
             "&#039;"
         );
+}
+
+function escapeHtmlAttribute(
+    value
+) {
+    return escapeHtml(value);
 }
