@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from fastapi.staticfiles import StaticFiles
 
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.database import (
     Base,
@@ -41,9 +41,6 @@ from app.routers.verification import (
 # DATABASE SETUP
 # =========================================================
 
-Base.metadata.create_all(
-    bind=engine
-)
 
 
 def migrate_scan_events():
@@ -82,7 +79,6 @@ def migrate_scan_events():
         )
 
 
-migrate_scan_events()
 
 
 # =========================================================
@@ -136,7 +132,7 @@ def seed_admin():
         db.close()
 
 
-seed_admin()
+
 
 
 # =========================================================
@@ -152,6 +148,66 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+# =========================================================
+# RESILIENT DATABASE INITIALIZATION
+# =========================================================
+
+from sqlalchemy.exc import OperationalError
+
+
+@app.on_event("startup")
+def initialize_database_on_startup():
+    """Initialize the database without crashing the API."""
+
+    try:
+        Base.metadata.create_all(bind=engine)
+        migrate_scan_events()
+        seed_admin()
+
+        print("TrustTrace database initialization successful.")
+
+    except Exception as exc:
+        print(
+            "WARNING: Database initialization failed. "
+            f"Error type: {type(exc).__name__}"
+        )
+
+
+@app.exception_handler(OperationalError)
+async def database_connection_error_handler(request, exc):
+    """Return a safe response for database connection errors."""
+
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "unavailable",
+            "detail": "The database is currently unavailable."
+        }
+    )
+
+
+@app.get("/health")
+def health_check():
+    """Check whether the database is reachable."""
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+
+    except Exception:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "degraded",
+                "database": "unavailable"
+            }
+        )
 
 # =========================================================
 # STATIC FILES
