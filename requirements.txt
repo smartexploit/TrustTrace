@@ -3,7 +3,7 @@ uvicorn==0.52.4
 sqlalchemy==2.0.52
 pydantic==2.13.5
 qrcode==8.2
-pillow==12.3.0
+pillow==13.0.0
 psycopg[binary]==3.2.10
 PyJWT==2.13.0
 pwdlib[argon2]==0.3.1
